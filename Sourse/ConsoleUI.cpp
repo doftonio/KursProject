@@ -1,12 +1,14 @@
 #include "../Headers/ConsoleUI.h"
+#include "../Headers/WorkshopReportService.h"
 #include "../Headers/InputValidator.h"
 #include "../Headers/ComputerDevice.h"
 #include "../Headers/HouseholdDevice.h"
 #include "../Headers/ElectronicDevice.h"
 #include "../Exeptions/AppException.h"
 #include <iostream>
-#include <iomanip>
+#include <format>
 #include <limits>
+#include <stdexcept>
 
 ConsoleUI::ConsoleUI(Storage& storageRef)
     : storage(storageRef) {}
@@ -105,14 +107,14 @@ void ConsoleUI::handleCreateOrder() {
     for (const auto& c : storage.getClients()) {
         std::cout << "  " << c << "\n";
     }
-    unsigned int clientId = static_cast<unsigned int>(readInt("Enter Client ID: ", 1, 100000));
+    auto clientId = static_cast<unsigned int>(readInt("Enter Client ID: ", 1, 100000));
 
     std::cout << "Available Masters (0 = Auto-assign least loaded):\n";
     for (const auto& m : storage.getMasters()) {
         std::cout << "  [" << m.getId() << "] Spec: " << m.getSpecialization().toStdString()
                   << " | Active: " << m.getActiveOrdersCount() << "\n";
     }
-    unsigned int masterId = static_cast<unsigned int>(readInt("Enter Master ID (0-1000): ", 0, 1000));
+    auto masterId = static_cast<unsigned int>(readInt("Enter Master ID (0-1000): ", 0, 1000));
 
     std::cout << "Device Category: 1 = Computer, 2 = Household, 3 = Electronics\n";
     int cat = readInt("Select category: ", 1, 3);
@@ -136,12 +138,12 @@ void ConsoleUI::handleCreateOrder() {
         dev = std::make_unique<ElectronicDevice>(model, serial, fault, rev, bga == 1);
     }
 
-    Order& created = storage.addOrder(clientId, masterId, std::move(dev), labor);
+    const Order& created = storage.addOrder(clientId, masterId, std::move(dev), labor);
     std::cout << "[OK] Created " << created << "\n";
 }
 
 void ConsoleUI::handleUpdateOrderStatus() {
-    unsigned int orderId = static_cast<unsigned int>(readInt("Enter Order ID: ", 1, 100000));
+    auto orderId = static_cast<unsigned int>(readInt("Enter Order ID: ", 1, 100000));
     std::cout << "New Status: 0 = Accepted, 1 = Diagnostics, 2 = WaitingParts, 3 = Completed, 4 = Issued\n";
     int statusCode = readInt("Select status: ", 0, 4);
     storage.changeOrderStatus(orderId, static_cast<OrderStatus>(statusCode));
@@ -149,7 +151,7 @@ void ConsoleUI::handleUpdateOrderStatus() {
 }
 
 void ConsoleUI::handleReservePart() {
-    unsigned int orderId = static_cast<unsigned int>(readInt("Enter Order ID: ", 1, 100000));
+    auto orderId = static_cast<unsigned int>(readInt("Enter Order ID: ", 1, 100000));
     auto available = storage.findAvailableParts();
     if (available.empty()) {
         std::cout << "No available spare parts in warehouse.\n";
@@ -158,22 +160,22 @@ void ConsoleUI::handleReservePart() {
     for (const auto& p : available) {
         std::cout << "  " << p << "\n";
     }
-    unsigned int partId = static_cast<unsigned int>(readInt("Enter Part ID: ", 1, 100000));
+    auto partId = static_cast<unsigned int>(readInt("Enter Part ID: ", 1, 100000));
     int count = readInt("Quantity to reserve: ", 1, 200);
     storage.reservePartForOrder(orderId, partId, count);
     std::cout << "[OK] Spare part reserved for order.\n";
 }
 
 void ConsoleUI::handleReturnPart() {
-    unsigned int orderId = static_cast<unsigned int>(readInt("Enter Order ID: ", 1, 100000));
-    unsigned int partId = static_cast<unsigned int>(readInt("Enter Part ID to return: ", 1, 100000));
+    auto orderId = static_cast<unsigned int>(readInt("Enter Order ID: ", 1, 100000));
+    auto partId = static_cast<unsigned int>(readInt("Enter Part ID to return: ", 1, 100000));
     int count = readInt("Quantity to return: ", 1, 200);
     storage.returnPartFromOrder(orderId, partId, count);
     std::cout << "[OK] Spare part returned to stock.\n";
 }
 
 void ConsoleUI::handleAddDiagnosticNote() {
-    unsigned int orderId = static_cast<unsigned int>(readInt("Enter Order ID: ", 1, 100000));
+    auto orderId = static_cast<unsigned int>(readInt("Enter Order ID: ", 1, 100000));
     std::string note = readLine("Diagnostic Note: ");
     storage.appendOrderNote(orderId, QString::fromStdString(note));
     std::cout << "[OK] Diagnostic note added.\n";
@@ -181,8 +183,7 @@ void ConsoleUI::handleAddDiagnosticNote() {
 
 void ConsoleUI::handleManageClients() {
     std::cout << "1. List / Search Clients\n2. Add New Client\n";
-    int choice = readInt("Select action: ", 1, 2);
-    if (choice == 1) {
+    if (int choice = readInt("Select action: ", 1, 2); choice == 1) {
         std::string query = readLine("Search query (name or phone, empty for all): ");
         auto found = storage.searchClients(QString::fromStdString(query));
         std::cout << "Found " << found.size() << " client(s).\n";
@@ -190,7 +191,7 @@ void ConsoleUI::handleManageClients() {
         std::string name = readLine("Full Name: ");
         std::string phone = readLine("Phone (+375XXXXXXXXX): ");
         std::string note = readLine("Note: ");
-        Client& added = storage.addClient(QString::fromStdString(name), QString::fromStdString(phone), QString::fromStdString(note));
+        const Client& added = storage.addClient(QString::fromStdString(name), QString::fromStdString(phone), QString::fromStdString(note));
         std::cout << "[OK] Added client ID #" << added.getId() << "\n";
     }
 }
@@ -210,10 +211,10 @@ void ConsoleUI::handleManageWarehouse() {
         std::string name = readLine("Part Name: ");
         int qty = readInt("Initial Quantity: ", 0, 10000);
         double price = readDouble("Unit Price (BYN): ", 0.01, 5000.0);
-        SparePart& added = storage.addPart(QString::fromStdString(sku), QString::fromStdString(name), qty, price);
+        const SparePart& added = storage.addPart(QString::fromStdString(sku), QString::fromStdString(name), qty, price);
         std::cout << "[OK] Added " << added << "\n";
     } else {
-        unsigned int partId = static_cast<unsigned int>(readInt("Enter Part ID: ", 1, 100000));
+        auto partId = static_cast<unsigned int>(readInt("Enter Part ID: ", 1, 100000));
         int count = readInt("Quantity to add: ", 1, 10000);
         storage.restockPart(partId, count);
         std::cout << "[OK] Stock updated.\n";
@@ -222,21 +223,27 @@ void ConsoleUI::handleManageWarehouse() {
 
 void ConsoleUI::handleShowReport() const {
     QDate today = QDate::currentDate();
-    PerformanceReport rep = storage.generatePerformanceReport(today.addYears(-1), today);
-    std::cout << std::fixed << std::setprecision(2)
-              << "\n--- PERFORMANCE REPORT ---\n"
-              << "Total Orders:     " << rep.totalOrders << "\n"
-              << "Active Orders:    " << rep.activeOrders << "\n"
-              << "Completed Orders: " << rep.completedOrders << "\n"
-              << "Labor Revenue:    " << rep.totalLaborRevenue << " BYN\n"
-              << "Parts Revenue:    " << rep.totalPartsRevenue << " BYN\n"
-              << "Total Revenue:    " << rep.totalRevenue << " BYN\n";
+    PerformanceReport rep = WorkshopReportService::generatePerformanceReport(storage, today.addYears(-1), today);
+    std::cout << std::format(
+        "\n--- PERFORMANCE REPORT ---\n"
+        "Total Orders:     {}\n"
+        "Active Orders:    {}\n"
+        "Completed Orders: {}\n"
+        "Labor Revenue:    {:.2f} BYN\n"
+        "Parts Revenue:    {:.2f} BYN\n"
+        "Total Revenue:    {:.2f} BYN\n",
+        rep.totalOrders,
+        rep.activeOrders,
+        rep.completedOrders,
+        rep.totalLaborRevenue,
+        rep.totalPartsRevenue,
+        rep.totalRevenue
+    );
 }
 
 void ConsoleUI::handleBackupAndRestore() {
     std::cout << "1. Create Backup\n2. Restore from Backup Folder\n";
-    int choice = readInt("Select action: ", 1, 2);
-    if (choice == 1) {
+    if (int choice = readInt("Select action: ", 1, 2); choice == 1) {
         QString path = storage.backupDatabase();
         std::cout << "[OK] Backup saved to: " << path.toStdString() << "\n";
     } else {
@@ -260,11 +267,16 @@ void ConsoleUI::handleManageMasters() {
         std::string phone = readLine("Phone (+375XXXXXXXXX): ");
         std::cout << "Specialization: 1 = Computer, 2 = Household, 3 = Electronics\n";
         int specChoice = readInt("Select specialization: ", 1, 3);
-        QString spec = (specChoice == 1) ? "Computer" : ((specChoice == 2) ? "Household" : "Electronics");
-        Master& added = storage.addMaster(QString::fromStdString(name), QString::fromStdString(phone), spec);
+        QString spec = "Electronics";
+        if (specChoice == 1) {
+            spec = "Computer";
+        } else if (specChoice == 2) {
+            spec = "Household";
+        }
+        const Master& added = storage.addMaster(QString::fromStdString(name), QString::fromStdString(phone), spec);
         std::cout << "[OK] Added Master ID #" << added.getId() << "\n";
     } else {
-        unsigned int masterId = static_cast<unsigned int>(readInt("Enter Master ID to remove: ", 1, 100000));
+        auto masterId = static_cast<unsigned int>(readInt("Enter Master ID to remove: ", 1, 100000));
         storage.removeMaster(masterId);
         std::cout << "[OK] Master removed.\n";
     }
@@ -290,11 +302,12 @@ void ConsoleUI::run() {
                 case 11: handleBackupAndRestore(); break;
                 case 12: handleManageMasters(); break;
                 case 0: running = false; break;
+                default: break;
             }
         } catch (const AppException& ex) {
             std::cout << "[Error #" << ex.getCode() << "] " << ex.what() << "\n";
-        } catch (const std::exception& ex) {
-            std::cout << "[System Error] " << ex.what() << "\n";
+        } catch (const std::out_of_range& ex) {
+            std::cout << "[Range Error] " << ex.what() << "\n";
         }
     }
 }

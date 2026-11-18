@@ -5,6 +5,7 @@
 #include "SparePart.h"
 #include "OrderItemPart.h"
 #include <QString>
+#include <QDateTime>
 #include <QJsonObject>
 #include <vector>
 #include <memory>
@@ -24,19 +25,19 @@ private:
     unsigned int clientId;
     unsigned int masterId;
     std::unique_ptr<Device> device;
-    QString dateReceived;
-    OrderStatus status;
+    QString dateReceived = QDateTime::currentDateTime().toString(Qt::ISODate);
+    OrderStatus status = OrderStatus::Accepted;
     double laborCost;
     QString diagnosticNotes;
     std::vector<OrderItemPart> usedParts;
 
 public:
-    Order(unsigned int id = 0, unsigned int clientId = 0, unsigned int masterId = 0, std::unique_ptr<Device> device = nullptr, double laborCost = 0.0);
+    explicit Order(unsigned int id = 0, unsigned int clientId = 0, unsigned int masterId = 0, std::unique_ptr<Device> device = nullptr, double laborCost = 0.0);
     Order(const Order& other);
     Order& operator=(const Order& other);
-    Order(Order&&) noexcept = default;
-    Order& operator=(Order&&) noexcept = default;
-    ~Order() = default;
+    Order(Order&& other) noexcept;
+    Order& operator=(Order&& other) noexcept;
+    ~Order() noexcept;
 
     unsigned int getId() const;
     unsigned int getClientId() const;
@@ -64,7 +65,16 @@ public:
 
     Order& operator+=(const OrderItemPart& item);
     bool operator==(const Order& other) const;
-    friend std::ostream& operator<<(std::ostream& os, const Order& order);
+
+    friend std::ostream& operator<<(std::ostream& os, const Order& order) {
+        os << "Order #" << order.id
+           << " | Client: " << order.clientId
+           << " | Master: " << order.masterId
+           << " | Device: " << (order.device ? order.device->getModel().toStdString() : "N/A")
+           << " | StatusCode: " << order.getStatusCode()
+           << " | Total: " << order.calculateTotalCost();
+        return os;
+    }
 
     QJsonObject toJson() const;
     static Order fromJson(const QJsonObject& json);

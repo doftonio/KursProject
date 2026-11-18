@@ -30,9 +30,9 @@ std::unique_ptr<Device> HouseholdDevice::clone() const {
 QJsonObject HouseholdDevice::toJson() const {
     QJsonObject obj;
     obj["category"] = getCategory();
-    obj["model"] = model;
-    obj["serialNumber"] = serialNumber;
-    obj["faultDescription"] = faultDescription;
+    obj["model"] = getModel();
+    obj["serialNumber"] = getSerialNumber();
+    obj["faultDescription"] = getFaultDescription();
     obj["powerWatts"] = powerWatts;
     obj["isPortable"] = isPortable;
     return obj;

@@ -9,7 +9,7 @@ private:
     bool isPortable;
 
 public:
-    HouseholdDevice(const QString& model = "", const QString& serialNumber = "", const QString& faultDescription = "", int powerWatts = 1000, bool isPortable = true);
+    explicit HouseholdDevice(const QString& model = "", const QString& serialNumber = "", const QString& faultDescription = "", int powerWatts = 1000, bool isPortable = true);
 
     int getPowerWatts() const;
     bool getIsPortable() const;

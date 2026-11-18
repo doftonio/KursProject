@@ -63,19 +63,19 @@ SparePart& SparePart::operator-=(int count) {
     return *this;
 }
 
-bool SparePart::operator<(const SparePart& other) const {
-    return sku < other.sku;
+std::strong_ordering SparePart::operator<=>(const SparePart& other) const {
+    int cmp = sku.compare(other.sku, Qt::CaseSensitive);
+    if (cmp < 0) {
+        return std::strong_ordering::less;
+    }
+    if (cmp > 0) {
+        return std::strong_ordering::greater;
+    }
+    return std::strong_ordering::equal;
 }
 
 bool SparePart::operator==(const SparePart& other) const {
     return id == other.id || sku == other.sku;
-}
-
-std::ostream& operator<<(std::ostream& os, const SparePart& part) {
-    os << "[" << part.id << "] " << part.sku.toStdString()
-       << " - " << part.name.toStdString()
-       << " | Qty: " << part.quantity << " | Price: " << part.price;
-    return os;
 }
 
 QJsonObject SparePart::toJson() const {
@@ -89,7 +89,7 @@ QJsonObject SparePart::toJson() const {
 }
 
 SparePart SparePart::fromJson(const QJsonObject& json) {
-    unsigned int parsedId = static_cast<unsigned int>(json["id"].toInt());
+    auto parsedId = static_cast<unsigned int>(json["id"].toInt());
     QString parsedSku = json["sku"].toString();
     QString parsedName = json["name"].toString();
     int parsedQty = json["quantity"].toInt();

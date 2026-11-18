@@ -12,7 +12,7 @@ private:
     double priceAtSale;
 
 public:
-    OrderItemPart(unsigned int partId = 0, const QString& partName = "", int quantity = 0, double priceAtSale = 0.0);
+    explicit OrderItemPart(unsigned int partId = 0, const QString& partName = "", int quantity = 0, double priceAtSale = 0.0);
 
     unsigned int getPartId() const;
     QString getPartName() const;

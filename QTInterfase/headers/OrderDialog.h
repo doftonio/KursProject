@@ -11,7 +11,6 @@
 #include <QTableWidget>
 #include <QLabel>
 #include <QCheckBox>
-#include <QPushButton>
 
 class OrderDialog : public QDialog {
     Q_OBJECT
@@ -34,12 +33,9 @@ private:
 
     QTextEdit* notesHistoryEdit;
     QLineEdit* newNoteEdit;
-    QPushButton* addNoteBtn;
 
     QComboBox* availablePartsCombo;
     QSpinBox* partQtySpin;
-    QPushButton* reservePartBtn;
-    QPushButton* returnPartBtn;
     QTableWidget* usedPartsTable;
     QLabel* totalCostLabel;
 
@@ -57,7 +53,7 @@ private slots:
     void onSave();
 
 public:
-    OrderDialog(Storage& storageRef, unsigned int existingOrderId = 0, QWidget* parent = nullptr);
+    explicit OrderDialog(Storage& storageRef, unsigned int existingOrderId = 0, QWidget* parent = nullptr);
     ~OrderDialog() override = default;
 };
 

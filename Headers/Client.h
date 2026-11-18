@@ -8,7 +8,7 @@ private:
     QString note;
 
 public:
-    Client(unsigned int id = 0, const QString& name = "", const QString& phone = "", const QString& note = "");
+    explicit Client(unsigned int id = 0, const QString& name = "", const QString& phone = "", const QString& note = "");
 
     QString getNote() const;
     void setNote(const QString& value);

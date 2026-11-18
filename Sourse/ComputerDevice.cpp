@@ -30,9 +30,9 @@ std::unique_ptr<Device> ComputerDevice::clone() const {
 QJsonObject ComputerDevice::toJson() const {
     QJsonObject obj;
     obj["category"] = getCategory();
-    obj["model"] = model;
-    obj["serialNumber"] = serialNumber;
-    obj["faultDescription"] = faultDescription;
+    obj["model"] = getModel();
+    obj["serialNumber"] = getSerialNumber();
+    obj["faultDescription"] = getFaultDescription();
     obj["osType"] = osType;
     obj["hasCharger"] = hasCharger;
     return obj;

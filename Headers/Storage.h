@@ -7,17 +7,7 @@
 #include "SparePart.h"
 #include "Order.h"
 #include <QString>
-#include <QDate>
 #include <vector>
-
-struct PerformanceReport {
-    int totalOrders = 0;
-    int activeOrders = 0;
-    int completedOrders = 0;
-    double totalLaborRevenue = 0.0;
-    double totalPartsRevenue = 0.0;
-    double totalRevenue = 0.0;
-};
 
 class Storage {
 private:
@@ -28,16 +18,17 @@ private:
     QString filepathParts;
     QString filepathOrders;
 
-    unsigned int nextClientId;
-    unsigned int nextMasterId;
-    unsigned int nextOrderId;
-    unsigned int nextPartId;
+    unsigned int nextClientId = 1;
+    unsigned int nextMasterId = 5;
+    unsigned int nextOrderId = 1;
+    unsigned int nextPartId = 1;
 
     Repository<Client> clients;
     Repository<Master> masters;
     Repository<SparePart> parts;
     Repository<Order> orders;
 
+    unsigned int allocateId(unsigned int& counter);
     void initDefaultMasters();
     void loadAppState();
     void saveAppState() const;
@@ -49,7 +40,6 @@ private:
     void saveParts() const;
     void loadOrders();
     void saveOrders() const;
-    void writeJsonAtomic(const QString& path, const QByteArray& content) const;
 
 public:
     static constexpr int maxActiveOrdersLimit = 30;
@@ -65,11 +55,6 @@ public:
     QString backupDatabase(const QString& backupRoot = "backups") const;
     void restoreDatabase(const QString& backupFolder);
 
-    unsigned int requestClientId();
-    unsigned int requestMasterId();
-    unsigned int requestOrderId();
-    unsigned int requestPartId();
-
     int countActiveOrders() const;
     void checkActiveOrdersLimit() const;
 
@@ -78,14 +63,10 @@ public:
     const Repository<SparePart>& getParts() const;
     const Repository<Order>& getOrders() const;
 
-    Client* findClientById(unsigned int id);
     const Client* findClientById(unsigned int id) const;
-    Master* findMasterById(unsigned int id);
     const Master* findMasterById(unsigned int id) const;
-    SparePart* findPartById(unsigned int id);
-    SparePart* findPartBySku(const QString& sku);
-    Order* findOrderById(unsigned int id);
     const Order* findOrderById(unsigned int id) const;
+    SparePart* findPartBySku(const QString& sku);
 
     std::vector<Client> searchClients(const QString& query) const;
     std::vector<Master> searchMasters(const QString& query) const;
@@ -94,8 +75,6 @@ public:
     std::vector<Master> findAvailableMasters(const QString& category) const;
     Master* selectLeastLoadedMaster(const QString& category);
     std::vector<Order> filterOrders(int statusFilter, const QString& query) const;
-    std::vector<Order> findOrdersByClient(unsigned int clientId) const;
-    std::vector<Order> findOrdersByMaster(unsigned int masterId) const;
 
     Client& addClient(const QString& name, const QString& phone, const QString& note = "");
     Master& addMaster(const QString& name, const QString& phone, const QString& specialization);
@@ -111,9 +90,6 @@ public:
     void reservePartForOrder(unsigned int orderId, unsigned int partId, int count);
     void returnPartFromOrder(unsigned int orderId, unsigned int partId, int count);
     void updateOrderLaborCost(unsigned int orderId, double newLaborCost);
-
-    QString generateWarrantyActHtml(unsigned int orderId) const;
-    PerformanceReport generatePerformanceReport(const QDate& from, const QDate& to) const;
 };
 
 #endif

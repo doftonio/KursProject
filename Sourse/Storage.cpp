@@ -1,36 +1,31 @@
 #include "../Headers/Storage.h"
+#include "../Headers/JsonFileHelper.h"
 #include "../Headers/InputValidator.h"
 #include "../Exeptions/CapacityExceededException.h"
 #include "../Exeptions/DuplicateEntityException.h"
 #include "../Exeptions/EntityNotFoundException.h"
-#include "../Exeptions/FileStorageException.h"
 #include "../Exeptions/InvalidInputDataException.h"
-#include <QFile>
-#include <QSaveFile>
-#include <QDir>
-#include <QFileInfo>
 #include <QJsonDocument>
 #include <QJsonArray>
 #include <QJsonObject>
-#include <QDateTime>
 #include <algorithm>
+#include <ranges>
 
 Storage::Storage(const QString& baseDir)
     : dataDirectory(baseDir),
-    filepathApp(baseDir + "/app_state.json"),
-    filepathClients(baseDir + "/clients.json"),
-    filepathMasters(baseDir + "/masters.json"),
-    filepathParts(baseDir + "/parts.json"),
-    filepathOrders(baseDir + "/orders.json"),
-    nextClientId(1),
-    nextMasterId(5),
-    nextOrderId(1),
-    nextPartId(1) {
-    QDir dir;
-    if (!dir.exists(dataDirectory) && !dir.mkpath(dataDirectory)) {
-        throw FileStorageException("Cannot create data directory: " + QFileInfo(dataDirectory).absoluteFilePath().toStdString());
-    }
+      filepathApp(baseDir + "/app_state.json"),
+      filepathClients(baseDir + "/clients.json"),
+      filepathMasters(baseDir + "/masters.json"),
+      filepathParts(baseDir + "/parts.json"),
+      filepathOrders(baseDir + "/orders.json") {
+    JsonFileHelper::ensureDirectory(dataDirectory);
     loadDatabaseFromJson();
+}
+
+unsigned int Storage::allocateId(unsigned int& counter) {
+    unsigned int assigned = counter++;
+    saveAppState();
+    return assigned;
 }
 
 void Storage::initDefaultMasters() {
@@ -44,54 +39,16 @@ void Storage::initDefaultMasters() {
     }
 }
 
-void Storage::writeJsonAtomic(const QString& path, const QByteArray& content) const {
-    QSaveFile saveFile(path);
-    if (saveFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        if (saveFile.write(content) != -1 && saveFile.commit()) {
-            return;
-        }
-    }
-
-    QFile directFile(path);
-    if (!directFile.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text)) {
-        throw FileStorageException(
-            "Cannot write file: " + QFileInfo(path).absoluteFilePath().toStdString() +
-            " (" + directFile.errorString().toStdString() + ")"
-        );
-    }
-    if (directFile.write(content) == -1) {
-        throw FileStorageException("Failed to write data to file: " + path.toStdString());
-    }
-    directFile.flush();
-    directFile.close();
-}
-
 void Storage::loadAppState() {
-    QFile file(filepathApp);
-    if (!file.exists()) {
+    bool isEmptyOrMissing = false;
+    QJsonDocument doc = JsonFileHelper::readDocument(filepathApp, true, isEmptyOrMissing);
+    if (isEmptyOrMissing) {
         nextClientId = 1;
         nextMasterId = 5;
         nextOrderId = 1;
         nextPartId = 1;
         saveAppState();
         return;
-    }
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        throw FileStorageException("Cannot open app state file: " + filepathApp.toStdString());
-    }
-    QByteArray raw = file.readAll().trimmed();
-    if (raw.isEmpty()) {
-        nextClientId = 1;
-        nextMasterId = 5;
-        nextOrderId = 1;
-        nextPartId = 1;
-        saveAppState();
-        return;
-    }
-    QJsonParseError parseErr;
-    QJsonDocument doc = QJsonDocument::fromJson(raw, &parseErr);
-    if (parseErr.error != QJsonParseError::NoError || !doc.isObject()) {
-        throw FileStorageException("Corrupted app_state.json format: " + parseErr.errorString().toStdString());
     }
     QJsonObject obj = doc.object();
     nextClientId = static_cast<unsigned int>(obj["nextClientId"].toInt(1));
@@ -106,28 +63,16 @@ void Storage::saveAppState() const {
     obj["nextMasterId"] = static_cast<int>(nextMasterId);
     obj["nextOrderId"] = static_cast<int>(nextOrderId);
     obj["nextPartId"] = static_cast<int>(nextPartId);
-    writeJsonAtomic(filepathApp, QJsonDocument(obj).toJson(QJsonDocument::Indented));
+    JsonFileHelper::writeAtomic(filepathApp, QJsonDocument(obj).toJson(QJsonDocument::Indented));
 }
 
 void Storage::loadClients() {
     clients.clear();
-    QFile file(filepathClients);
-    if (!file.exists()) {
+    bool isEmptyOrMissing = false;
+    QJsonDocument doc = JsonFileHelper::readDocument(filepathClients, false, isEmptyOrMissing);
+    if (isEmptyOrMissing) {
         saveClients();
         return;
-    }
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        throw FileStorageException("Cannot open clients.json: " + file.errorString().toStdString());
-    }
-    QByteArray raw = file.readAll().trimmed();
-    if (raw.isEmpty()) {
-        saveClients();
-        return;
-    }
-    QJsonParseError err;
-    QJsonDocument doc = QJsonDocument::fromJson(raw, &err);
-    if (err.error != QJsonParseError::NoError || !doc.isArray()) {
-        throw FileStorageException("Corrupted clients.json format: " + err.errorString().toStdString());
     }
     for (const auto& val : doc.array()) {
         if (val.isObject()) {
@@ -145,30 +90,17 @@ void Storage::saveClients() const {
     for (const auto& c : clients) {
         arr.append(c.toJson());
     }
-    writeJsonAtomic(filepathClients, QJsonDocument(arr).toJson(QJsonDocument::Indented));
+    JsonFileHelper::writeAtomic(filepathClients, QJsonDocument(arr).toJson(QJsonDocument::Indented));
 }
 
 void Storage::loadMasters() {
     masters.clear();
-    QFile file(filepathMasters);
-    if (!file.exists()) {
+    bool isEmptyOrMissing = false;
+    QJsonDocument doc = JsonFileHelper::readDocument(filepathMasters, false, isEmptyOrMissing);
+    if (isEmptyOrMissing) {
         initDefaultMasters();
         saveMasters();
         return;
-    }
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        throw FileStorageException("Cannot open masters.json: " + file.errorString().toStdString());
-    }
-    QByteArray raw = file.readAll().trimmed();
-    if (raw.isEmpty()) {
-        initDefaultMasters();
-        saveMasters();
-        return;
-    }
-    QJsonParseError err;
-    QJsonDocument doc = QJsonDocument::fromJson(raw, &err);
-    if (err.error != QJsonParseError::NoError || !doc.isArray()) {
-        throw FileStorageException("Corrupted masters.json format: " + err.errorString().toStdString());
     }
     bool migrated = false;
     for (const auto& val : doc.array()) {
@@ -177,16 +109,13 @@ void Storage::loadMasters() {
             if (m.getName() == "Ivanov Alexey Petrovich") {
                 m.setName("Иванов Алексей Петрович");
                 migrated = true;
-            }
-            else if (m.getName() == "Smirnov Dmitry Olegovich") {
+            } else if (m.getName() == "Smirnov Dmitry Olegovich") {
                 m.setName("Смирнов Дмитрий Олегович");
                 migrated = true;
-            }
-            else if (m.getName() == "Kovalenko Sergey Viktorovich") {
+            } else if (m.getName() == "Kovalenko Sergey Viktorovich") {
                 m.setName("Коваленко Сергей Викторович");
                 migrated = true;
-            }
-            else if (m.getName() == "Morozov Andrey Igorevich") {
+            } else if (m.getName() == "Morozov Andrey Igorevich") {
                 m.setName("Морозов Андрей Игоревич");
                 migrated = true;
             }
@@ -199,8 +128,7 @@ void Storage::loadMasters() {
     if (masters.empty()) {
         initDefaultMasters();
         saveMasters();
-    }
-    else if (migrated) {
+    } else if (migrated) {
         saveMasters();
     }
 }
@@ -210,28 +138,16 @@ void Storage::saveMasters() const {
     for (const auto& m : masters) {
         arr.append(m.toJson());
     }
-    writeJsonAtomic(filepathMasters, QJsonDocument(arr).toJson(QJsonDocument::Indented));
+    JsonFileHelper::writeAtomic(filepathMasters, QJsonDocument(arr).toJson(QJsonDocument::Indented));
 }
 
 void Storage::loadParts() {
     parts.clear();
-    QFile file(filepathParts);
-    if (!file.exists()) {
+    bool isEmptyOrMissing = false;
+    QJsonDocument doc = JsonFileHelper::readDocument(filepathParts, false, isEmptyOrMissing);
+    if (isEmptyOrMissing) {
         saveParts();
         return;
-    }
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        throw FileStorageException("Cannot open parts.json: " + file.errorString().toStdString());
-    }
-    QByteArray raw = file.readAll().trimmed();
-    if (raw.isEmpty()) {
-        saveParts();
-        return;
-    }
-    QJsonParseError err;
-    QJsonDocument doc = QJsonDocument::fromJson(raw, &err);
-    if (err.error != QJsonParseError::NoError || !doc.isArray()) {
-        throw FileStorageException("Corrupted parts.json format: " + err.errorString().toStdString());
     }
     for (const auto& val : doc.array()) {
         if (val.isObject()) {
@@ -249,36 +165,24 @@ void Storage::saveParts() const {
     for (const auto& p : parts) {
         arr.append(p.toJson());
     }
-    writeJsonAtomic(filepathParts, QJsonDocument(arr).toJson(QJsonDocument::Indented));
+    JsonFileHelper::writeAtomic(filepathParts, QJsonDocument(arr).toJson(QJsonDocument::Indented));
 }
 
 void Storage::loadOrders() {
     orders.clear();
-    QFile file(filepathOrders);
-    if (!file.exists()) {
+    bool isEmptyOrMissing = false;
+    QJsonDocument doc = JsonFileHelper::readDocument(filepathOrders, false, isEmptyOrMissing);
+    if (isEmptyOrMissing) {
         saveOrders();
         return;
-    }
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        throw FileStorageException("Cannot open orders.json: " + file.errorString().toStdString());
-    }
-    QByteArray raw = file.readAll().trimmed();
-    if (raw.isEmpty()) {
-        saveOrders();
-        return;
-    }
-    QJsonParseError err;
-    QJsonDocument doc = QJsonDocument::fromJson(raw, &err);
-    if (err.error != QJsonParseError::NoError || !doc.isArray()) {
-        throw FileStorageException("Corrupted orders.json format: " + err.errorString().toStdString());
     }
     for (const auto& val : doc.array()) {
         if (val.isObject()) {
             Order o = Order::fromJson(val.toObject());
-            orders.add(std::move(o));
             if (o.getId() >= nextOrderId) {
                 nextOrderId = o.getId() + 1;
             }
+            orders.add(std::move(o));
         }
     }
 }
@@ -288,7 +192,7 @@ void Storage::saveOrders() const {
     for (const auto& o : orders) {
         arr.append(o.toJson());
     }
-    writeJsonAtomic(filepathOrders, QJsonDocument(arr).toJson(QJsonDocument::Indented));
+    JsonFileHelper::writeAtomic(filepathOrders, QJsonDocument(arr).toJson(QJsonDocument::Indented));
 }
 
 void Storage::loadDatabaseFromJson() {
@@ -310,100 +214,30 @@ void Storage::saveDatabaseToJson() const {
 
 QString Storage::backupDatabase(const QString& backupRoot) const {
     saveDatabaseToJson();
-    QString stamp = QDateTime::currentDateTime().toString("yyyy-MM-dd_HH-mm-ss");
-    QString targetFolder = backupRoot + "/backup_" + stamp;
-    QDir dir;
-    if (!dir.mkpath(targetFolder)) {
-        throw FileStorageException("Unable to create backup directory: " + targetFolder.toStdString());
-    }
-    QStringList filesToCopy = {
+    QStringList fileNames = {
         "app_state.json",
         "clients.json",
         "masters.json",
         "parts.json",
         "orders.json"
     };
-    for (const auto& fileName : filesToCopy) {
-        QString src = dataDirectory + "/" + fileName;
-        QString dst = targetFolder + "/" + fileName;
-        if (QFile::exists(src)) {
-            if (QFile::exists(dst)) {
-                QFile::remove(dst);
-            }
-            if (!QFile::copy(src, dst)) {
-                throw FileStorageException("Failed to copy file to backup: " + fileName.toStdString());
-            }
-        }
-    }
-    return targetFolder;
+    return JsonFileHelper::copyBackupSnapshot(dataDirectory, backupRoot, fileNames);
 }
 
 void Storage::restoreDatabase(const QString& backupFolder) {
-    QDir dir(backupFolder);
-    if (!dir.exists()) {
-        throw FileStorageException("Backup directory does not exist: " + backupFolder.toStdString());
-    }
-    QStringList filesToRestore = {
+    QStringList fileNames = {
         "app_state.json",
         "clients.json",
         "masters.json",
         "parts.json",
         "orders.json"
     };
-    for (const auto& fileName : filesToRestore) {
-        QString src = backupFolder + "/" + fileName;
-        if (!QFile::exists(src)) {
-            throw FileStorageException("Missing file in backup archive: " + fileName.toStdString());
-        }
-        QFile checkFile(src);
-        if (!checkFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
-            throw FileStorageException("Cannot read backup file: " + fileName.toStdString());
-        }
-        QJsonParseError err;
-        QJsonDocument::fromJson(checkFile.readAll(), &err);
-        if (err.error != QJsonParseError::NoError) {
-            throw FileStorageException("Corrupted JSON in backup file: " + fileName.toStdString());
-        }
-    }
-    for (const auto& fileName : filesToRestore) {
-        QString src = backupFolder + "/" + fileName;
-        QString dst = dataDirectory + "/" + fileName;
-        if (QFile::exists(dst)) {
-            QFile::remove(dst);
-        }
-        if (!QFile::copy(src, dst)) {
-            throw FileStorageException("Failed to restore file: " + fileName.toStdString());
-        }
-    }
+    JsonFileHelper::restoreBackupSnapshot(backupFolder, dataDirectory, fileNames);
     loadDatabaseFromJson();
 }
 
-unsigned int Storage::requestClientId() {
-    unsigned int assigned = nextClientId++;
-    saveAppState();
-    return assigned;
-}
-
-unsigned int Storage::requestMasterId() {
-    unsigned int assigned = nextMasterId++;
-    saveAppState();
-    return assigned;
-}
-
-unsigned int Storage::requestOrderId() {
-    unsigned int assigned = nextOrderId++;
-    saveAppState();
-    return assigned;
-}
-
-unsigned int Storage::requestPartId() {
-    unsigned int assigned = nextPartId++;
-    saveAppState();
-    return assigned;
-}
-
 int Storage::countActiveOrders() const {
-    return static_cast<int>(std::count_if(orders.cbegin(), orders.cend(),
+    return static_cast<int>(std::ranges::count_if(orders,
         [](const Order& o) { return o.isActive(); }));
 }
 
@@ -429,24 +263,16 @@ const Repository<Order>& Storage::getOrders() const {
     return orders;
 }
 
-Client* Storage::findClientById(unsigned int id) {
-    return clients.findById(id);
-}
-
 const Client* Storage::findClientById(unsigned int id) const {
     return clients.findById(id);
-}
-
-Master* Storage::findMasterById(unsigned int id) {
-    return masters.findById(id);
 }
 
 const Master* Storage::findMasterById(unsigned int id) const {
     return masters.findById(id);
 }
 
-SparePart* Storage::findPartById(unsigned int id) {
-    return parts.findById(id);
+const Order* Storage::findOrderById(unsigned int id) const {
+    return orders.findById(id);
 }
 
 SparePart* Storage::findPartBySku(const QString& sku) {
@@ -459,14 +285,6 @@ SparePart* Storage::findPartBySku(const QString& sku) {
     return nullptr;
 }
 
-Order* Storage::findOrderById(unsigned int id) {
-    return orders.findById(id);
-}
-
-const Order* Storage::findOrderById(unsigned int id) const {
-    return orders.findById(id);
-}
-
 std::vector<Client> Storage::searchClients(const QString& query) const {
     QString trimmed = query.trimmed();
     if (trimmed.isEmpty()) {
@@ -474,8 +292,8 @@ std::vector<Client> Storage::searchClients(const QString& query) const {
     }
     return clients.findIf([&trimmed](const Client& c) {
         return c.getName().contains(trimmed, Qt::CaseInsensitive) ||
-            c.getPhone().contains(trimmed, Qt::CaseInsensitive);
-        });
+               c.getPhone().contains(trimmed, Qt::CaseInsensitive);
+    });
 }
 
 std::vector<Master> Storage::searchMasters(const QString& query) const {
@@ -485,9 +303,9 @@ std::vector<Master> Storage::searchMasters(const QString& query) const {
     }
     return masters.findIf([&trimmed](const Master& m) {
         return m.getName().contains(trimmed, Qt::CaseInsensitive) ||
-            m.getPhone().contains(trimmed, Qt::CaseInsensitive) ||
-            m.getSpecialization().contains(trimmed, Qt::CaseInsensitive);
-        });
+               m.getPhone().contains(trimmed, Qt::CaseInsensitive) ||
+               m.getSpecialization().contains(trimmed, Qt::CaseInsensitive);
+    });
 }
 
 std::vector<SparePart> Storage::searchParts(const QString& query) const {
@@ -497,8 +315,8 @@ std::vector<SparePart> Storage::searchParts(const QString& query) const {
     }
     return parts.findIf([&trimmed](const SparePart& p) {
         return p.getSku().contains(trimmed, Qt::CaseInsensitive) ||
-            p.getName().contains(trimmed, Qt::CaseInsensitive);
-        });
+               p.getName().contains(trimmed, Qt::CaseInsensitive);
+    });
 }
 
 std::vector<SparePart> Storage::findAvailableParts() const {
@@ -515,15 +333,15 @@ std::vector<Master> Storage::findAvailableMasters(const QString& category) const
             return true;
         }
         return m.getSpecialization().compare(trimmedCat, Qt::CaseInsensitive) == 0;
-        });
+    });
 
     if (matched.empty()) {
         matched = masters.findIf([](const Master& m) { return m.canAcceptOrder(); });
     }
 
-    std::sort(matched.begin(), matched.end(), [](const Master& a, const Master& b) {
+    std::ranges::sort(matched, [](const Master& a, const Master& b) {
         return a.getActiveOrdersCount() < b.getActiveOrdersCount();
-        });
+    });
     return matched;
 }
 
@@ -532,7 +350,7 @@ Master* Storage::selectLeastLoadedMaster(const QString& category) {
     if (candidates.empty()) {
         throw CapacityExceededException("All workshop masters have reached maximum active workload");
     }
-    return findMasterById(candidates.front().getId());
+    return masters.findById(candidates.front().getId());
 }
 
 std::vector<Order> Storage::filterOrders(int statusFilter, const QString& query) const {
@@ -547,25 +365,16 @@ std::vector<Order> Storage::filterOrders(int statusFilter, const QString& query)
         bool deviceMatch = false;
         if (o.getDevice()) {
             deviceMatch = o.getDevice()->getModel().contains(trimmed, Qt::CaseInsensitive) ||
-                o.getDevice()->getSerialNumber().contains(trimmed, Qt::CaseInsensitive);
+                          o.getDevice()->getSerialNumber().contains(trimmed, Qt::CaseInsensitive);
         }
         bool clientMatch = false;
-        const Client* c = findClientById(o.getClientId());
-        if (c) {
+        if (const Client* c = findClientById(o.getClientId()); c != nullptr) {
             clientMatch = c->getName().contains(trimmed, Qt::CaseInsensitive) ||
-                c->getPhone().contains(trimmed, Qt::CaseInsensitive);
+                          c->getPhone().contains(trimmed, Qt::CaseInsensitive);
         }
         bool idMatch = QString::number(o.getId()) == trimmed;
         return deviceMatch || clientMatch || idMatch;
-        });
-}
-
-std::vector<Order> Storage::findOrdersByClient(unsigned int clientId) const {
-    return orders.findIf([clientId](const Order& o) { return o.getClientId() == clientId; });
-}
-
-std::vector<Order> Storage::findOrdersByMaster(unsigned int masterId) const {
-    return orders.findIf([masterId](const Order& o) { return o.getMasterId() == masterId; });
+    });
 }
 
 Client& Storage::addClient(const QString& name, const QString& phone, const QString& note) {
@@ -582,10 +391,10 @@ Client& Storage::addClient(const QString& name, const QString& phone, const QStr
         }
     }
 
-    unsigned int newId = requestClientId();
+    unsigned int newId = allocateId(nextClientId);
     clients.add(Client(newId, InputValidator::sanitizeString(name), normalizedPhone, InputValidator::sanitizeString(note)));
     saveClients();
-    return *findClientById(newId);
+    return *clients.findById(newId);
 }
 
 Master& Storage::addMaster(const QString& name, const QString& phone, const QString& specialization) {
@@ -603,14 +412,14 @@ Master& Storage::addMaster(const QString& name, const QString& phone, const QStr
         }
     }
 
-    unsigned int newId = requestMasterId();
+    unsigned int newId = allocateId(nextMasterId);
     masters.add(Master(newId, InputValidator::sanitizeString(name), normalizedPhone, InputValidator::sanitizeString(specialization), 0));
     saveMasters();
-    return *findMasterById(newId);
+    return *masters.findById(newId);
 }
 
 void Storage::updateMasterSpecialization(unsigned int masterId, const QString& newSpecialization) {
-    Master* master = findMasterById(masterId);
+    Master* master = masters.findById(masterId);
     if (!master) {
         throw EntityNotFoundException("Master not found");
     }
@@ -620,7 +429,7 @@ void Storage::updateMasterSpecialization(unsigned int masterId, const QString& n
 }
 
 void Storage::removeMaster(unsigned int masterId) {
-    Master* master = findMasterById(masterId);
+    const Master* master = masters.findById(masterId);
     if (!master) {
         throw EntityNotFoundException("Master not found");
     }
@@ -655,14 +464,14 @@ SparePart& Storage::addPart(const QString& sku, const QString& name, int quantit
         throw DuplicateEntityException("Part with SKU already exists: " + trimmedSku.toStdString());
     }
 
-    unsigned int newId = requestPartId();
+    unsigned int newId = allocateId(nextPartId);
     parts.add(SparePart(newId, trimmedSku, InputValidator::sanitizeString(name), quantity, price));
     saveParts();
-    return *findPartById(newId);
+    return *parts.findById(newId);
 }
 
 void Storage::restockPart(unsigned int partId, int addCount) {
-    SparePart* part = findPartById(partId);
+    SparePart* part = parts.findById(partId);
     if (!part) {
         throw EntityNotFoundException("Spare part not found");
     }
@@ -687,9 +496,8 @@ Order& Storage::addOrder(unsigned int clientId, unsigned int masterId, std::uniq
     Master* assignedMaster = nullptr;
     if (masterId == 0) {
         assignedMaster = selectLeastLoadedMaster(device->getCategory());
-    }
-    else {
-        assignedMaster = findMasterById(masterId);
+    } else {
+        assignedMaster = masters.findById(masterId);
         if (!assignedMaster) {
             throw EntityNotFoundException("Selected master does not exist");
         }
@@ -698,7 +506,7 @@ Order& Storage::addOrder(unsigned int clientId, unsigned int masterId, std::uniq
         }
     }
 
-    unsigned int newId = requestOrderId();
+    unsigned int newId = allocateId(nextOrderId);
     Order newOrder(newId, clientId, assignedMaster->getId(), std::move(device), laborCost);
     newOrder.appendDiagnosticNote("Заказ зарегистрирован и назначен мастеру: " + assignedMaster->getName());
     orders.add(std::move(newOrder));
@@ -706,21 +514,19 @@ Order& Storage::addOrder(unsigned int clientId, unsigned int masterId, std::uniq
 
     saveMasters();
     saveOrders();
-    return *findOrderById(newId);
+    return *orders.findById(newId);
 }
 
 void Storage::changeOrderStatus(unsigned int orderId, OrderStatus newStatus) {
-    Order* order = findOrderById(orderId);
+    Order* order = orders.findById(orderId);
     if (!order) {
         throw EntityNotFoundException("Order not found");
     }
     bool wasActive = order->isActive();
     order->updateStatus(newStatus);
-    bool isNowActive = order->isActive();
 
-    if (wasActive && !isNowActive) {
-        Master* master = findMasterById(order->getMasterId());
-        if (master) {
+    if (bool isNowActive = order->isActive(); wasActive && !isNowActive) {
+        if (Master* master = masters.findById(order->getMasterId()); master != nullptr) {
             master->decrementOrders();
             saveMasters();
         }
@@ -729,7 +535,7 @@ void Storage::changeOrderStatus(unsigned int orderId, OrderStatus newStatus) {
 }
 
 void Storage::appendOrderNote(unsigned int orderId, const QString& note) {
-    Order* order = findOrderById(orderId);
+    Order* order = orders.findById(orderId);
     if (!order) {
         throw EntityNotFoundException("Order not found");
     }
@@ -739,11 +545,11 @@ void Storage::appendOrderNote(unsigned int orderId, const QString& note) {
 }
 
 void Storage::reservePartForOrder(unsigned int orderId, unsigned int partId, int count) {
-    Order* order = findOrderById(orderId);
+    Order* order = orders.findById(orderId);
     if (!order) {
         throw EntityNotFoundException("Order not found");
     }
-    SparePart* part = findPartById(partId);
+    SparePart* part = parts.findById(partId);
     if (!part) {
         throw EntityNotFoundException("Spare part not found");
     }
@@ -753,11 +559,11 @@ void Storage::reservePartForOrder(unsigned int orderId, unsigned int partId, int
 }
 
 void Storage::returnPartFromOrder(unsigned int orderId, unsigned int partId, int count) {
-    Order* order = findOrderById(orderId);
+    Order* order = orders.findById(orderId);
     if (!order) {
         throw EntityNotFoundException("Order not found");
     }
-    SparePart* part = findPartById(partId);
+    SparePart* part = parts.findById(partId);
     if (!part) {
         throw EntityNotFoundException("Spare part not found");
     }
@@ -767,123 +573,11 @@ void Storage::returnPartFromOrder(unsigned int orderId, unsigned int partId, int
 }
 
 void Storage::updateOrderLaborCost(unsigned int orderId, double newLaborCost) {
-    Order* order = findOrderById(orderId);
+    Order* order = orders.findById(orderId);
     if (!order) {
         throw EntityNotFoundException("Order not found");
     }
     InputValidator::validateLaborCost(newLaborCost);
     order->setLaborCost(newLaborCost);
     saveOrders();
-}
-
-QString Storage::generateWarrantyActHtml(unsigned int orderId) const {
-    const Order* order = findOrderById(orderId);
-    if (!order) {
-        throw EntityNotFoundException("Order not found for PDF report");
-    }
-    const Client* client = findClientById(order->getClientId());
-    const Master* master = findMasterById(order->getMasterId());
-
-    QString clientInfo = client ? QString("%1 (%2)").arg(client->getName(), client->getPhone()) : "Неизвестный клиент";
-    QString masterInfo = master ? QString("%1 (%2)").arg(master->getName(), master->getSpecialization()) : "Не назначен";
-    QString deviceModel = order->getDevice() ? order->getDevice()->getModel() : "Н/Д";
-    QString deviceSerial = order->getDevice() ? order->getDevice()->getSerialNumber() : "Н/Д";
-    QString deviceCategory = order->getDevice() ? order->getDevice()->getCategory() : "Н/Д";
-    if (deviceCategory == "Computer") {
-        deviceCategory = "Компьютерная техника";
-    }
-    else if (deviceCategory == "Household") {
-        deviceCategory = "Бытовая техника";
-    }
-    else if (deviceCategory == "Electronics") {
-        deviceCategory = "Радиоэлектроника";
-    }
-
-    QString deviceSpecs = order->getDevice() ? order->getDevice()->getSpecsSummary() : "Н/Д";
-    QString fault = order->getDevice() ? order->getDevice()->getFaultDescription() : "Н/Д";
-    double factor = order->getDevice() ? order->getDevice()->getComplexityFactor() : 1.0;
-
-    QString partsRows;
-    for (const auto& item : order->getUsedParts()) {
-        partsRows += QString("<tr><td>%1</td><td>%2</td><td>%3</td><td>%4 BYN</td><td>%5 BYN</td></tr>")
-            .arg(item.getPartId())
-            .arg(item.getPartName().toHtmlEscaped())
-            .arg(item.getQuantity())
-            .arg(item.getPriceAtSale(), 0, 'f', 2)
-            .arg(item.getSubtotal(), 0, 'f', 2);
-    }
-    if (partsRows.isEmpty()) {
-        partsRows = "<tr><td colspan='5'>Запасные части не использовались</td></tr>";
-    }
-
-    QString html = QString(
-        "<html><head><meta charset='utf-8'><style>"
-        "body { font-family: Arial, sans-serif; font-size: 11pt; }"
-        "h1 { font-size: 15pt; text-align: center; }"
-        "table { width: 100%; border-collapse: collapse; margin-top: 10px; }"
-        "th, td { border: 1px solid #333; padding: 6px; text-align: left; }"
-        "</style></head><body>"
-        "<h1>РАСЧЁТНО-ГАРАНТИЙНЫЙ АКТ ВЫПОЛНЕННЫХ РАБОТ №%1</h1>"
-        "<p><b>Дата приёма:</b> %2</p>"
-        "<p><b>Текущий статус:</b> %3</p>"
-        "<p><b>Заказчик:</b> %4</p>"
-        "<p><b>Ответственный мастер:</b> %5</p>"
-        "<hr>"
-        "<p><b>Категория оборудования:</b> %6</p>"
-        "<p><b>Модель:</b> %7 | <b>Серийный номер / IMEI:</b> %8</p>"
-        "<p><b>Технические параметры:</b> %9</p>"
-        "<p><b>Заявленная неисправность:</b> %10</p>"
-        "<p><b>Журнал диагностики:</b><br>%11</p>"
-        "<h3>Использованные запасные части</h3>"
-        "<table><tr><th>ID</th><th>Наименование</th><th>Кол-во</th><th>Цена за ед.</th><th>Сумма</th></tr>"
-        "%12</table>"
-        "<h3>Финансовый итог</h3>"
-        "<p>Базовая стоимость работ: %13 BYN (коэффициент сложности: x%14)</p>"
-        "<p>Стоимость комплектующих: %15 BYN</p>"
-        "<p><b>ИТОГО К ОПЛАТЕ: %16 BYN</b></p>"
-        "<p><i>Гарантийный срок на выполненные работы и установленные детали составляет 90 календарных дней с даты выдачи.</i></p>"
-        "</body></html>"
-    )
-        .arg(order->getId())
-        .arg(order->getDateReceived())
-        .arg(order->getStatusText())
-        .arg(clientInfo.toHtmlEscaped())
-        .arg(masterInfo.toHtmlEscaped())
-        .arg(deviceCategory)
-        .arg(deviceModel.toHtmlEscaped())
-        .arg(deviceSerial.toHtmlEscaped())
-        .arg(deviceSpecs.toHtmlEscaped())
-        .arg(fault.toHtmlEscaped())
-        .arg(order->getDiagnosticNotes().toHtmlEscaped().replace("\n", "<br>"))
-        .arg(partsRows)
-        .arg(order->getLaborCost(), 0, 'f', 2)
-        .arg(factor, 0, 'f', 2)
-        .arg(order->calculatePartsCost(), 0, 'f', 2)
-        .arg(order->calculateTotalCost(), 0, 'f', 2);
-
-    return html;
-}
-
-PerformanceReport Storage::generatePerformanceReport(const QDate& from, const QDate& to) const {
-    PerformanceReport report;
-    for (const auto& order : orders) {
-        QDate orderDate = QDateTime::fromString(order.getDateReceived(), Qt::ISODate).date();
-        if (orderDate.isValid() && (orderDate < from || orderDate > to)) {
-            continue;
-        }
-        ++report.totalOrders;
-        if (order.isActive()) {
-            ++report.activeOrders;
-        }
-        else {
-            ++report.completedOrders;
-        }
-        double factor = order.getDevice() ? order.getDevice()->getComplexityFactor() : 1.0;
-        double labor = order.getLaborCost() * factor;
-        double partsSum = order.calculatePartsCost();
-        report.totalLaborRevenue += labor;
-        report.totalPartsRevenue += partsSum;
-        report.totalRevenue += (labor + partsSum);
-    }
-    return report;
 }

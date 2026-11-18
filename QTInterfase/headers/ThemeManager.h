@@ -1,8 +1,8 @@
 #ifndef THEMEMANAGER_H
 #define THEMEMANAGER_H
 
-#include <QApplication>
 #include <QString>
+#include <QColor>
 
 enum class ThemeMode {
     Day = 0,
@@ -24,24 +24,39 @@ enum class FontScale {
     Large = 2
 };
 
+struct ThemePaletteColors {
+    QString windowBg;
+    QString surfaceBg;
+    QString altBg;
+    QString border;
+    QString text;
+    QString btnBg;
+    QString btnHover;
+    QString accent;
+    QString accentHover;
+};
+
 class ThemeManager {
 private:
-    ThemeMode mode;
-    ColorPalette palette;
-    FontScale fontScale;
-    bool roundedCorners;
+    ThemeMode mode = ThemeMode::Day;
+    ColorPalette palette = ColorPalette::Blue;
+    FontScale fontScale = FontScale::Standard;
+    bool roundedCorners = true;
     QString settingsPath;
 
     void saveSettings() const;
     QString ensureCheckmarkIcon() const;
-    void applyPalette(QApplication& app) const;
+    ThemePaletteColors resolveColors() const;
+    QColor resolveAccentColor(bool isNight) const;
+    int resolveFontPoints() const;
+    void applyPalette() const;
     QString buildStyleSheet() const;
 
 public:
     explicit ThemeManager(const QString& configPath = "data/ui_theme.ini");
 
-    void loadAndApply(QApplication& app);
-    void apply();
+    void loadAndApply();
+    void apply() const;
 
     ThemeMode getMode() const;
     ColorPalette getPalette() const;

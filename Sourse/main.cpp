@@ -1,10 +1,12 @@
 #include <QApplication>
+#include <QMessageBox>
 #include "../QTInterfase/headers/MainWindow.h"
 #include "../QTInterfase/headers/ThemeManager.h"
 #include "../Headers/ConsoleUI.h"
 #include "../Exeptions/AppException.h"
 #include <iostream>
 #include <cstring>
+#include <stdexcept>
 
 int main(int argc, char* argv[]) {
     bool consoleMode = false;
@@ -27,9 +29,25 @@ int main(int argc, char* argv[]) {
     }
 
     QApplication app(argc, argv);
-    ThemeManager themeManager;
-    themeManager.loadAndApply(app);
-    MainWindow window(themeManager);
-    window.show();
-    return app.exec();
+    try {
+        ThemeManager themeManager;
+        themeManager.loadAndApply();
+        MainWindow window(themeManager);
+        window.show();
+        return QApplication::exec();
+    } catch (const AppException& ex) {
+        QMessageBox::critical(
+            nullptr,
+            "Storage Initialization Error",
+            QString("Error #%1:\n%2").arg(ex.getCode()).arg(QString::fromStdString(ex.what()))
+        );
+        return 1;
+    } catch (const std::out_of_range& ex) {
+        QMessageBox::critical(
+            nullptr,
+            "Range Error",
+            QString::fromStdString(ex.what())
+        );
+        return 1;
+    }
 }

@@ -30,9 +30,9 @@ std::unique_ptr<Device> ElectronicDevice::clone() const {
 QJsonObject ElectronicDevice::toJson() const {
     QJsonObject obj;
     obj["category"] = getCategory();
-    obj["model"] = model;
-    obj["serialNumber"] = serialNumber;
-    obj["faultDescription"] = faultDescription;
+    obj["model"] = getModel();
+    obj["serialNumber"] = getSerialNumber();
+    obj["faultDescription"] = getFaultDescription();
     obj["boardRevision"] = boardRevision;
     obj["requiresMicroSoldering"] = requiresMicroSoldering;
     return obj;

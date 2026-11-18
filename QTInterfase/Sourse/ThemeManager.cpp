@@ -1,8 +1,9 @@
 #include "../headers/ThemeManager.h"
+#include "../../Headers/EnumUtils.h"
+#include <QApplication>
 #include <QSettings>
 #include <QStyleFactory>
 #include <QPalette>
-#include <QColor>
 #include <QFont>
 #include <QDir>
 #include <QFileInfo>
@@ -11,16 +12,11 @@
 #include <QPen>
 
 ThemeManager::ThemeManager(const QString& configPath)
-    : mode(ThemeMode::Day),
-      palette(ColorPalette::Blue),
-      fontScale(FontScale::Standard),
-      roundedCorners(true),
-      settingsPath(configPath) {}
+    : settingsPath(configPath) {}
 
 QString ThemeManager::ensureCheckmarkIcon() const {
     QFileInfo info(settingsPath);
-    QDir dir;
-    if (!dir.exists(info.path())) {
+    if (QDir dir; !dir.exists(info.path())) {
         dir.mkpath(info.path());
     }
     QString iconPath = info.absolutePath() + "/checkmark.png";
@@ -39,10 +35,9 @@ QString ThemeManager::ensureCheckmarkIcon() const {
     return QFileInfo(iconPath).absoluteFilePath();
 }
 
-void ThemeManager::loadAndApply(QApplication& app) {
+void ThemeManager::loadAndApply() {
     QFileInfo info(settingsPath);
-    QDir dir;
-    if (!dir.exists(info.path())) {
+    if (QDir dir; !dir.exists(info.path())) {
         dir.mkpath(info.path());
     }
 
@@ -52,19 +47,82 @@ void ThemeManager::loadAndApply(QApplication& app) {
     fontScale = static_cast<FontScale>(settings.value("fontScale", 1).toInt());
     roundedCorners = settings.value("roundedCorners", true).toBool();
 
-    app.setStyle(QStyleFactory::create("Fusion"));
+    QApplication::setStyle(QStyleFactory::create("Fusion"));
     apply();
 }
 
 void ThemeManager::saveSettings() const {
     QSettings settings(settingsPath, QSettings::IniFormat);
-    settings.setValue("mode", static_cast<int>(mode));
-    settings.setValue("palette", static_cast<int>(palette));
-    settings.setValue("fontScale", static_cast<int>(fontScale));
+    settings.setValue("mode", toUnderlying(mode));
+    settings.setValue("palette", toUnderlying(palette));
+    settings.setValue("fontScale", toUnderlying(fontScale));
     settings.setValue("roundedCorners", roundedCorners);
 }
 
-void ThemeManager::applyPalette(QApplication& app) const {
+QColor ThemeManager::resolveAccentColor(bool isNight) const {
+    using enum ColorPalette;
+    switch (palette) {
+        case Emerald:
+            return isNight ? QColor("#10B981") : QColor("#059669");
+        case Amber:
+            return isNight ? QColor("#F59E0B") : QColor("#D97706");
+        case Violet:
+            return isNight ? QColor("#8B5CF6") : QColor("#7C3AED");
+        case Crimson:
+            return isNight ? QColor("#EF4444") : QColor("#DC2626");
+        case Graphite:
+            return isNight ? QColor("#64748B") : QColor("#475569");
+        case Blue:
+        default:
+            return isNight ? QColor("#3B82F6") : QColor("#2563EB");
+    }
+}
+
+ThemePaletteColors ThemeManager::resolveColors() const {
+    bool isNight = (mode == ThemeMode::Night);
+    QColor accentColor = resolveAccentColor(isNight);
+    QColor hoverColor = isNight ? accentColor.lighter(120) : accentColor.darker(115);
+
+    if (isNight) {
+        return {
+            "#12151C",
+            "#1B202B",
+            "#222836",
+            "#2E3748",
+            "#E2E8F0",
+            "#262D3D",
+            "#323B4F",
+            accentColor.name(),
+            hoverColor.name()
+        };
+    }
+    return {
+        "#F4F6F9",
+        "#FFFFFF",
+        "#F8FAFC",
+        "#CBD5E1",
+        "#1E293B",
+        "#FFFFFF",
+        "#E2E8F0",
+        accentColor.name(),
+        hoverColor.name()
+    };
+}
+
+int ThemeManager::resolveFontPoints() const {
+    using enum FontScale;
+    switch (fontScale) {
+        case Compact:
+            return 9;
+        case Large:
+            return 11;
+        case Standard:
+        default:
+            return 10;
+    }
+}
+
+void ThemeManager::applyPalette() const {
     bool isNight = (mode == ThemeMode::Night);
     QPalette pal;
 
@@ -74,28 +132,7 @@ void ThemeManager::applyPalette(QApplication& app) const {
     QColor textPrimary = isNight ? QColor("#E2E8F0") : QColor("#1E293B");
     QColor textDisabled = isNight ? QColor("#64748B") : QColor("#94A3B8");
     QColor buttonBg = isNight ? QColor("#262D3D") : QColor("#E2E8F0");
-
-    QColor accent;
-    switch (palette) {
-        case ColorPalette::Blue:
-            accent = isNight ? QColor("#3B82F6") : QColor("#2563EB");
-            break;
-        case ColorPalette::Emerald:
-            accent = isNight ? QColor("#10B981") : QColor("#059669");
-            break;
-        case ColorPalette::Amber:
-            accent = isNight ? QColor("#F59E0B") : QColor("#D97706");
-            break;
-        case ColorPalette::Violet:
-            accent = isNight ? QColor("#8B5CF6") : QColor("#7C3AED");
-            break;
-        case ColorPalette::Crimson:
-            accent = isNight ? QColor("#EF4444") : QColor("#DC2626");
-            break;
-        case ColorPalette::Graphite:
-            accent = isNight ? QColor("#94A3B8") : QColor("#475569");
-            break;
-    }
+    QColor accent = resolveAccentColor(isNight);
 
     pal.setColor(QPalette::Window, windowBg);
     pal.setColor(QPalette::WindowText, textPrimary);
@@ -112,57 +149,13 @@ void ThemeManager::applyPalette(QApplication& app) const {
     pal.setColor(QPalette::Disabled, QPalette::Text, textDisabled);
     pal.setColor(QPalette::Disabled, QPalette::ButtonText, textDisabled);
 
-    app.setPalette(pal);
+    QApplication::setPalette(pal);
 }
 
 QString ThemeManager::buildStyleSheet() const {
-    bool isNight = (mode == ThemeMode::Night);
     QString checkUrl = ensureCheckmarkIcon();
-
-    QString windowBg = isNight ? "#12151C" : "#F4F6F9";
-    QString surfaceBg = isNight ? "#1B202B" : "#FFFFFF";
-    QString altBg = isNight ? "#222836" : "#F8FAFC";
-    QString border = isNight ? "#2E3748" : "#CBD5E1";
-    QString text = isNight ? "#E2E8F0" : "#1E293B";
-    QString btnBg = isNight ? "#262D3D" : "#FFFFFF";
-    QString btnHover = isNight ? "#323B4F" : "#E2E8F0";
-
-    QString accent;
-    QString accentHover;
-    switch (palette) {
-        case ColorPalette::Blue:
-            accent = isNight ? "#3B82F6" : "#2563EB";
-            accentHover = isNight ? "#60A5FA" : "#1D4ED8";
-            break;
-        case ColorPalette::Emerald:
-            accent = isNight ? "#10B981" : "#059669";
-            accentHover = isNight ? "#34D399" : "#047857";
-            break;
-        case ColorPalette::Amber:
-            accent = isNight ? "#F59E0B" : "#D97706";
-            accentHover = isNight ? "#FBBF24" : "#B45309";
-            break;
-        case ColorPalette::Violet:
-            accent = isNight ? "#8B5CF6" : "#7C3AED";
-            accentHover = isNight ? "#A78BFA" : "#6D28D9";
-            break;
-        case ColorPalette::Crimson:
-            accent = isNight ? "#EF4444" : "#DC2626";
-            accentHover = isNight ? "#F87171" : "#B91C1C";
-            break;
-        case ColorPalette::Graphite:
-            accent = isNight ? "#64748B" : "#475569";
-            accentHover = isNight ? "#94A3B8" : "#334155";
-            break;
-    }
-
-    int fontPt = 10;
-    if (fontScale == FontScale::Compact) {
-        fontPt = 9;
-    } else if (fontScale == FontScale::Large) {
-        fontPt = 11;
-    }
-
+    ThemePaletteColors c = resolveColors();
+    int fontPt = resolveFontPoints();
     int radius = roundedCorners ? 6 : 2;
 
     return QString(
@@ -191,36 +184,30 @@ QString ThemeManager::buildStyleSheet() const {
         "QLabel#totalHighlight { font-size: %12pt; font-weight: bold; color: %6; }"
         "QFrame#themeBar { background-color: %7; border: 1px solid %4; border-radius: %5px; }"
     )
-    .arg(windowBg)
-    .arg(text)
+    .arg(c.windowBg)
+    .arg(c.text)
     .arg(fontPt)
-    .arg(border)
+    .arg(c.border)
     .arg(radius)
-    .arg(accent)
-    .arg(surfaceBg)
-    .arg(btnBg)
-    .arg(btnHover)
-    .arg(accentHover)
-    .arg(altBg)
+    .arg(c.accent)
+    .arg(c.surfaceBg)
+    .arg(c.btnBg)
+    .arg(c.btnHover)
+    .arg(c.accentHover)
+    .arg(c.altBg)
     .arg(fontPt + 2)
     .arg(checkUrl);
 }
 
-void ThemeManager::apply() {
+void ThemeManager::apply() const {
     auto* app = qobject_cast<QApplication*>(QApplication::instance());
     if (!app) {
         return;
     }
-    QFont font = app->font();
-    if (fontScale == FontScale::Compact) {
-        font.setPointSize(9);
-    } else if (fontScale == FontScale::Large) {
-        font.setPointSize(11);
-    } else {
-        font.setPointSize(10);
-    }
-    app->setFont(font);
-    applyPalette(*app);
+    QFont font = QApplication::font();
+    font.setPointSize(resolveFontPoints());
+    QApplication::setFont(font);
+    applyPalette();
     app->setStyleSheet(buildStyleSheet());
 }
 
@@ -247,7 +234,8 @@ void ThemeManager::setMode(ThemeMode value) {
 }
 
 void ThemeManager::toggleMode() {
-    mode = (mode == ThemeMode::Day) ? ThemeMode::Night : ThemeMode::Day;
+    using enum ThemeMode;
+    mode = (mode == Day) ? Night : Day;
     saveSettings();
     apply();
 }

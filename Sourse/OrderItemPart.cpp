@@ -44,7 +44,7 @@ QJsonObject OrderItemPart::toJson() const {
 }
 
 OrderItemPart OrderItemPart::fromJson(const QJsonObject& json) {
-    unsigned int parsedPartId = static_cast<unsigned int>(json["partId"].toInt());
+    auto parsedPartId = static_cast<unsigned int>(json["partId"].toInt());
     QString parsedName = json["partName"].toString();
     int parsedQty = json["quantity"].toInt();
     double parsedPrice = json["priceAtSale"].toDouble();

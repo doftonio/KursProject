@@ -1,4 +1,5 @@
 #include "../headers/PartDialog.h"
+#include "../headers/UiHelpers.h"
 #include "../../Headers/InputValidator.h"
 #include "../../Exeptions/AppException.h"
 #include <QVBoxLayout>
@@ -17,13 +18,13 @@ void PartDialog::buildUi() {
     setWindowTitle("Склад запасных частей");
     resize(780, 540);
 
-    auto* mainLayout = new QVBoxLayout(this);
+    auto* mainLayout = makeOwned<QVBoxLayout>(this);
 
-    searchEdit = new QLineEdit(this);
+    searchEdit = makeOwned<QLineEdit>(this);
     searchEdit->setPlaceholderText("Поиск комплектующих по артикулу (SKU) или наименованию...");
     mainLayout->addWidget(searchEdit);
 
-    partsTable = new QTableWidget(this);
+    partsTable = makeOwned<QTableWidget>(this);
     partsTable->setColumnCount(5);
     partsTable->setHorizontalHeaderLabels({"ID", "Артикул (SKU)", "Наименование", "Остаток (шт.)", "Цена (BYN)"});
     partsTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
@@ -34,20 +35,20 @@ void PartDialog::buildUi() {
     partsTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
     mainLayout->addWidget(partsTable, 1);
 
-    auto* addGroup = new QGroupBox("Оприходование новой номенклатуры", this);
-    auto* addLayout = new QHBoxLayout(addGroup);
-    skuEdit = new QLineEdit(this);
+    auto* addGroup = makeOwned<QGroupBox>("Оприходование новой номенклатуры", this);
+    auto* addLayout = makeOwned<QHBoxLayout>(addGroup);
+    skuEdit = makeOwned<QLineEdit>(this);
     skuEdit->setPlaceholderText("Артикул (напр. CAP-100UF)");
     InputValidator::setupSkuValidator(skuEdit);
-    nameEdit = new QLineEdit(this);
+    nameEdit = makeOwned<QLineEdit>(this);
     nameEdit->setPlaceholderText("Наименование детали");
-    qtySpin = new QSpinBox(this);
+    qtySpin = makeOwned<QSpinBox>(this);
     qtySpin->setRange(0, 10000);
-    priceSpin = new QDoubleSpinBox(this);
+    priceSpin = makeOwned<QDoubleSpinBox>(this);
     priceSpin->setRange(0.01, 5000.0);
     priceSpin->setDecimals(2);
     priceSpin->setSuffix(" BYN");
-    addPartBtn = new QPushButton("Добавить позицию", this);
+    addPartBtn = makeOwned<QPushButton>("Добавить позицию", this);
     addPartBtn->setObjectName("primaryBtn");
 
     addLayout->addWidget(skuEdit, 2);
@@ -57,11 +58,11 @@ void PartDialog::buildUi() {
     addLayout->addWidget(addPartBtn);
     mainLayout->addWidget(addGroup);
 
-    auto* restockRow = new QHBoxLayout();
-    restockSpin = new QSpinBox(this);
+    auto* restockRow = makeOwned<QHBoxLayout>();
+    restockSpin = makeOwned<QSpinBox>(this);
     restockSpin->setRange(1, 10000);
-    restockBtn = new QPushButton("Пополнить остаток выбранной", this);
-    closeBtn = new QPushButton("Закрыть", this);
+    restockBtn = makeOwned<QPushButton>("Пополнить остаток выбранной", this);
+    closeBtn = makeOwned<QPushButton>("Закрыть", this);
 
     restockRow->addWidget(restockSpin);
     restockRow->addWidget(restockBtn);
@@ -80,13 +81,13 @@ void PartDialog::refreshTable() {
     partsTable->setRowCount(static_cast<int>(list.size()));
     for (int row = 0; row < static_cast<int>(list.size()); ++row) {
         const SparePart& p = list[static_cast<std::size_t>(row)];
-        auto* idItem = new QTableWidgetItem(QString::number(p.getId()));
+        auto* idItem = makeOwned<QTableWidgetItem>(QString::number(p.getId()));
         idItem->setData(Qt::UserRole, p.getId());
         partsTable->setItem(row, 0, idItem);
-        partsTable->setItem(row, 1, new QTableWidgetItem(p.getSku()));
-        partsTable->setItem(row, 2, new QTableWidgetItem(p.getName()));
-        partsTable->setItem(row, 3, new QTableWidgetItem(QString::number(p.getQuantity())));
-        partsTable->setItem(row, 4, new QTableWidgetItem(QString::number(p.getPrice(), 'f', 2)));
+        partsTable->setItem(row, 1, makeOwned<QTableWidgetItem>(p.getSku()));
+        partsTable->setItem(row, 2, makeOwned<QTableWidgetItem>(p.getName()));
+        partsTable->setItem(row, 3, makeOwned<QTableWidgetItem>(QString::number(p.getQuantity())));
+        partsTable->setItem(row, 4, makeOwned<QTableWidgetItem>(QString::number(p.getPrice(), 'f', 2)));
     }
 }
 

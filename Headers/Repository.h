@@ -4,6 +4,7 @@
 #include "../Exeptions/EntityNotFoundException.h"
 #include <vector>
 #include <algorithm>
+#include <ranges>
 #include <iterator>
 #include <cstddef>
 
@@ -30,22 +31,20 @@ public:
 
     bool removeById(unsigned int targetId) {
         auto oldSize = items.size();
-        items.erase(
-            std::remove_if(items.begin(), items.end(),
-                [targetId](const T& obj) { return obj.getId() == targetId; }),
-            items.end()
-        );
+        auto removed = std::ranges::remove_if(items,
+            [targetId](const T& obj) { return obj.getId() == targetId; });
+        items.erase(removed.begin(), removed.end());
         return items.size() < oldSize;
     }
 
     T* findById(unsigned int targetId) {
-        auto it = std::find_if(items.begin(), items.end(),
+        auto it = std::ranges::find_if(items,
             [targetId](const T& obj) { return obj.getId() == targetId; });
         return (it != items.end()) ? &(*it) : nullptr;
     }
 
     const T* findById(unsigned int targetId) const {
-        auto it = std::find_if(items.cbegin(), items.cend(),
+        auto it = std::ranges::find_if(items,
             [targetId](const T& obj) { return obj.getId() == targetId; });
         return (it != items.cend()) ? &(*it) : nullptr;
     }
@@ -53,7 +52,7 @@ public:
     template <typename Predicate>
     std::vector<T> findIf(Predicate pred) const {
         std::vector<T> result;
-        std::copy_if(items.cbegin(), items.cend(), std::back_inserter(result), pred);
+        std::ranges::copy_if(items, std::back_inserter(result), pred);
         return result;
     }
 

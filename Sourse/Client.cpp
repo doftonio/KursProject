@@ -12,20 +12,20 @@ void Client::setNote(const QString& value) {
 }
 
 QString Client::getRoleInfo() const {
-    return QString("Client #%1: %2 (%3)").arg(id).arg(name, phone);
+    return QString("Client #%1: %2 (%3)").arg(getId()).arg(getName(), getPhone());
 }
 
 QJsonObject Client::toJson() const {
     QJsonObject obj;
-    obj["id"] = static_cast<int>(id);
-    obj["name"] = name;
-    obj["phone"] = phone;
+    obj["id"] = static_cast<int>(getId());
+    obj["name"] = getName();
+    obj["phone"] = getPhone();
     obj["note"] = note;
     return obj;
 }
 
 Client Client::fromJson(const QJsonObject& json) {
-    unsigned int parsedId = static_cast<unsigned int>(json["id"].toInt());
+    auto parsedId = static_cast<unsigned int>(json["id"].toInt());
     QString parsedName = json["name"].toString();
     QString parsedPhone = json["phone"].toString();
     QString parsedNote = json["note"].toString();

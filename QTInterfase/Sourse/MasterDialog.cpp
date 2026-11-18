@@ -1,4 +1,5 @@
 #include "../headers/MasterDialog.h"
+#include "../headers/UiHelpers.h"
 #include "../../Headers/InputValidator.h"
 #include "../../Exeptions/AppException.h"
 #include <QVBoxLayout>
@@ -31,13 +32,13 @@ void MasterDialog::buildUi() {
     setWindowTitle("Управление персоналом (мастера сервисного центра)");
     resize(820, 540);
 
-    auto* mainLayout = new QVBoxLayout(this);
+    auto* mainLayout = makeOwned<QVBoxLayout>(this);
 
-    searchEdit = new QLineEdit(this);
+    searchEdit = makeOwned<QLineEdit>(this);
     searchEdit->setPlaceholderText("Поиск мастера по ФИО, телефону или специализации...");
     mainLayout->addWidget(searchEdit);
 
-    mastersTable = new QTableWidget(this);
+    mastersTable = makeOwned<QTableWidget>(this);
     mastersTable->setColumnCount(5);
     mastersTable->setHorizontalHeaderLabels({"ID", "ФИО мастера", "Телефон", "Специализация", "Активных заказов"});
     mastersTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
@@ -48,17 +49,17 @@ void MasterDialog::buildUi() {
     mastersTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
     mainLayout->addWidget(mastersTable, 1);
 
-    auto* addGroup = new QGroupBox("Приём нового мастера в штат", this);
-    auto* addLayout = new QHBoxLayout(addGroup);
-    nameEdit = new QLineEdit(this);
+    auto* addGroup = makeOwned<QGroupBox>("Приём нового мастера в штат", this);
+    auto* addLayout = makeOwned<QHBoxLayout>(addGroup);
+    nameEdit = makeOwned<QLineEdit>(this);
     nameEdit->setPlaceholderText("ФИО специалиста");
-    phoneEdit = new QLineEdit(this);
+    phoneEdit = makeOwned<QLineEdit>(this);
     InputValidator::setupPhoneMask(phoneEdit);
-    addSpecCombo = new QComboBox(this);
+    addSpecCombo = makeOwned<QComboBox>(this);
     addSpecCombo->addItem("Компьютерная техника", "Computer");
     addSpecCombo->addItem("Бытовая техника", "Household");
     addSpecCombo->addItem("Радиоэлектроника", "Electronics");
-    addBtn = new QPushButton("Добавить мастера", this);
+    addBtn = makeOwned<QPushButton>("Добавить мастера", this);
     addBtn->setObjectName("primaryBtn");
 
     addLayout->addWidget(nameEdit, 3);
@@ -67,18 +68,18 @@ void MasterDialog::buildUi() {
     addLayout->addWidget(addBtn);
     mainLayout->addWidget(addGroup);
 
-    auto* manageGroup = new QGroupBox("Управление выбранным сотрудником", this);
-    auto* manageLayout = new QHBoxLayout(manageGroup);
-    editSpecCombo = new QComboBox(this);
+    auto* manageGroup = makeOwned<QGroupBox>("Управление выбранным сотрудником", this);
+    auto* manageLayout = makeOwned<QHBoxLayout>(manageGroup);
+    editSpecCombo = makeOwned<QComboBox>(this);
     editSpecCombo->addItem("Компьютерная техника", "Computer");
     editSpecCombo->addItem("Бытовая техника", "Household");
     editSpecCombo->addItem("Радиоэлектроника", "Electronics");
-    updateSpecBtn = new QPushButton("Сохранить специализацию", this);
-    removeBtn = new QPushButton("Удалить мастера", this);
+    updateSpecBtn = makeOwned<QPushButton>("Сохранить специализацию", this);
+    removeBtn = makeOwned<QPushButton>("Удалить мастера", this);
     removeBtn->setObjectName("dangerBtn");
-    closeBtn = new QPushButton("Закрыть", this);
+    closeBtn = makeOwned<QPushButton>("Закрыть", this);
 
-    manageLayout->addWidget(new QLabel("Профиль:", this));
+    manageLayout->addWidget(makeOwned<QLabel>("Профиль:", this));
     manageLayout->addWidget(editSpecCombo, 1);
     manageLayout->addWidget(updateSpecBtn);
     manageLayout->addWidget(removeBtn);
@@ -99,13 +100,13 @@ void MasterDialog::refreshTable() {
     mastersTable->setRowCount(static_cast<int>(list.size()));
     for (int row = 0; row < static_cast<int>(list.size()); ++row) {
         const Master& m = list[static_cast<std::size_t>(row)];
-        auto* idItem = new QTableWidgetItem(QString::number(m.getId()));
+        auto* idItem = makeOwned<QTableWidgetItem>(QString::number(m.getId()));
         idItem->setData(Qt::UserRole, m.getId());
         mastersTable->setItem(row, 0, idItem);
-        mastersTable->setItem(row, 1, new QTableWidgetItem(m.getName()));
-        mastersTable->setItem(row, 2, new QTableWidgetItem(m.getPhone()));
-        mastersTable->setItem(row, 3, new QTableWidgetItem(formatSpecRu(m.getSpecialization())));
-        mastersTable->setItem(row, 4, new QTableWidgetItem(QString("%1 / %2").arg(m.getActiveOrdersCount()).arg(Master::maxOrdersPerMaster)));
+        mastersTable->setItem(row, 1, makeOwned<QTableWidgetItem>(m.getName()));
+        mastersTable->setItem(row, 2, makeOwned<QTableWidgetItem>(m.getPhone()));
+        mastersTable->setItem(row, 3, makeOwned<QTableWidgetItem>(formatSpecRu(m.getSpecialization())));
+        mastersTable->setItem(row, 4, makeOwned<QTableWidgetItem>(QString("%1 / %2").arg(m.getActiveOrdersCount()).arg(Master::maxOrdersPerMaster)));
     }
 }
 
@@ -114,7 +115,7 @@ unsigned int MasterDialog::getSelectedMasterId() const {
     if (row < 0) {
         return 0;
     }
-    QTableWidgetItem* item = mastersTable->item(row, 0);
+    const QTableWidgetItem* item = mastersTable->item(row, 0);
     return item ? item->data(Qt::UserRole).toUInt() : 0;
 }
 
@@ -127,10 +128,8 @@ void MasterDialog::onSelectionChanged() {
     if (selectedId == 0) {
         return;
     }
-    const Master* m = storage.findMasterById(selectedId);
-    if (m) {
-        int idx = editSpecCombo->findData(m->getSpecialization());
-        if (idx >= 0) {
+    if (const Master* m = storage.findMasterById(selectedId); m != nullptr) {
+        if (int idx = editSpecCombo->findData(m->getSpecialization()); idx >= 0) {
             editSpecCombo->setCurrentIndex(idx);
         }
     }
@@ -174,13 +173,12 @@ void MasterDialog::onRemoveMaster() {
     if (!m) {
         return;
     }
-    auto reply = QMessageBox::question(
-        this,
-        "Подтверждение удаления",
-        QString("Удалить мастера «%1» из штата мастерской?").arg(m->getName()),
-        QMessageBox::Yes | QMessageBox::No
-    );
-    if (reply != QMessageBox::Yes) {
+    if (auto reply = QMessageBox::question(
+            this,
+            "Подтверждение удаления",
+            QString("Удалить мастера «%1» из штата мастерской?").arg(m->getName()),
+            QMessageBox::Yes | QMessageBox::No
+        ); reply != QMessageBox::Yes) {
         return;
     }
     try {

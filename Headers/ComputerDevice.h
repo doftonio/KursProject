@@ -9,7 +9,7 @@ private:
     bool hasCharger;
 
 public:
-    ComputerDevice(const QString& model = "", const QString& serialNumber = "", const QString& faultDescription = "", const QString& osType = "Windows", bool hasCharger = true);
+    explicit ComputerDevice(const QString& model = "", const QString& serialNumber = "", const QString& faultDescription = "", const QString& osType = "Windows", bool hasCharger = true);
 
     QString getOsType() const;
     bool getHasCharger() const;

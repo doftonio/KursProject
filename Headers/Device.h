@@ -6,7 +6,7 @@
 #include <memory>
 
 class Device {
-protected:
+private:
     QString model;
     QString serialNumber;
     QString faultDescription;

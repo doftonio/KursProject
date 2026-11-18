@@ -3,6 +3,7 @@
 
 #include <QString>
 #include <QJsonObject>
+#include <compare>
 #include <ostream>
 
 class SparePart {
@@ -14,7 +15,7 @@ private:
     double price;
 
 public:
-    SparePart(unsigned int id = 0, const QString& sku = "", const QString& name = "", int quantity = 0, double price = 0.0);
+    explicit SparePart(unsigned int id = 0, const QString& sku = "", const QString& name = "", int quantity = 0, double price = 0.0);
 
     unsigned int getId() const;
     QString getSku() const;
@@ -29,9 +30,15 @@ public:
 
     SparePart& operator+=(int count);
     SparePart& operator-=(int count);
-    bool operator<(const SparePart& other) const;
+    std::strong_ordering operator<=>(const SparePart& other) const;
     bool operator==(const SparePart& other) const;
-    friend std::ostream& operator<<(std::ostream& os, const SparePart& part);
+
+    friend std::ostream& operator<<(std::ostream& os, const SparePart& part) {
+        os << "[" << part.id << "] " << part.sku.toStdString()
+           << " - " << part.name.toStdString()
+           << " | Qty: " << part.quantity << " | Price: " << part.price;
+        return os;
+    }
 
     QJsonObject toJson() const;
     static SparePart fromJson(const QJsonObject& json);

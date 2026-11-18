@@ -9,7 +9,7 @@ private:
     bool requiresMicroSoldering;
 
 public:
-    ElectronicDevice(const QString& model = "", const QString& serialNumber = "", const QString& faultDescription = "", const QString& boardRevision = "Rev 1.0", bool requiresMicroSoldering = false);
+    explicit ElectronicDevice(const QString& model = "", const QString& serialNumber = "", const QString& faultDescription = "", const QString& boardRevision = "Rev 1.0", bool requiresMicroSoldering = false);
 
     QString getBoardRevision() const;
     bool getRequiresMicroSoldering() const;

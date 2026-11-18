@@ -15,6 +15,7 @@ HEADERS += \
     Exeptions/CapacityExceededException.h \
     Exeptions/InsufficientStockException.h \
     Exeptions/FileStorageException.h \
+    Headers/EnumUtils.h \
     Headers/Person.h \
     Headers/Client.h \
     Headers/Master.h \
@@ -27,8 +28,11 @@ HEADERS += \
     Headers/Order.h \
     Headers/Repository.h \
     Headers/InputValidator.h \
+    Headers/JsonFileHelper.h \
     Headers/Storage.h \
+    Headers/WorkshopReportService.h \
     Headers/ConsoleUI.h \
+    QTInterfase/headers/UiHelpers.h \
     QTInterfase/headers/ThemeManager.h \
     QTInterfase/headers/MainWindow.h \
     QTInterfase/headers/OrderDialog.h \
@@ -49,7 +53,9 @@ SOURCES += \
     Sourse/OrderItemPart.cpp \
     Sourse/Order.cpp \
     Sourse/InputValidator.cpp \
+    Sourse/JsonFileHelper.cpp \
     Sourse/Storage.cpp \
+    Sourse/WorkshopReportService.cpp \
     Sourse/ConsoleUI.cpp \
     Sourse/main.cpp \
     QTInterfase/Sourse/ThemeManager.cpp \

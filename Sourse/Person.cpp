@@ -26,9 +26,3 @@ void Person::setPhone(const QString& value) {
 bool Person::operator==(const Person& other) const {
     return id == other.id || (!phone.isEmpty() && phone == other.phone);
 }
-
-std::ostream& operator<<(std::ostream& os, const Person& person) {
-    os << "[" << person.id << "] " << person.name.toStdString()
-       << " (" << person.phone.toStdString() << ")";
-    return os;
-}

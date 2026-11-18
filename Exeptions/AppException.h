@@ -9,7 +9,7 @@ private:
     int errorCode;
 
 public:
-    AppException(const std::string& message, int code = 100);
+    explicit AppException(const std::string& message, int code = 100);
     int getCode() const noexcept;
 };
 

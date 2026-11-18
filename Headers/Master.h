@@ -11,7 +11,7 @@ private:
 public:
     static constexpr int maxOrdersPerMaster = 10;
 
-    Master(unsigned int id = 0, const QString& name = "", const QString& phone = "", const QString& specialization = "", int activeOrdersCount = 0);
+    explicit Master(unsigned int id = 0, const QString& name = "", const QString& phone = "", const QString& specialization = "", int activeOrdersCount = 0);
 
     QString getSpecialization() const;
     int getActiveOrdersCount() const;

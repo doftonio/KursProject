@@ -31,23 +31,23 @@ void Master::decrementOrders() {
 
 QString Master::getRoleInfo() const {
     return QString("Master #%1: %2 [%3] (Active: %4)")
-        .arg(id)
-        .arg(name, specialization)
+        .arg(getId())
+        .arg(getName(), specialization)
         .arg(activeOrdersCount);
 }
 
 QJsonObject Master::toJson() const {
     QJsonObject obj;
-    obj["id"] = static_cast<int>(id);
-    obj["name"] = name;
-    obj["phone"] = phone;
+    obj["id"] = static_cast<int>(getId());
+    obj["name"] = getName();
+    obj["phone"] = getPhone();
     obj["specialization"] = specialization;
     obj["activeOrdersCount"] = activeOrdersCount;
     return obj;
 }
 
 Master Master::fromJson(const QJsonObject& json) {
-    unsigned int parsedId = static_cast<unsigned int>(json["id"].toInt());
+    auto parsedId = static_cast<unsigned int>(json["id"].toInt());
     QString parsedName = json["name"].toString();
     QString parsedPhone = json["phone"].toString();
     QString parsedSpec = json["specialization"].toString();

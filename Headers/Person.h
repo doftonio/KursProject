@@ -6,7 +6,7 @@
 #include <ostream>
 
 class Person {
-protected:
+private:
     unsigned int id;
     QString name;
     QString phone;
@@ -26,7 +26,12 @@ public:
     virtual QJsonObject toJson() const = 0;
 
     bool operator==(const Person& other) const;
-    friend std::ostream& operator<<(std::ostream& os, const Person& person);
+
+    friend std::ostream& operator<<(std::ostream& os, const Person& person) {
+        os << "[" << person.id << "] " << person.name.toStdString()
+           << " (" << person.phone.toStdString() << ")";
+        return os;
+    }
 };
 
 #endif

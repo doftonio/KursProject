@@ -40,7 +40,7 @@ private:
 
     void buildUi();
     void syncThemeControls();
-    void setupConnections();
+    void setupConnections() const;
     void refreshOrdersTable();
     unsigned int getSelectedOrderId() const;
     static QString formatStatusRu(OrderStatus status);

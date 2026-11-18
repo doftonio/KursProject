@@ -1,4 +1,5 @@
 #include "../headers/OrderDialog.h"
+#include "../headers/UiHelpers.h"
 #include "../../Headers/InputValidator.h"
 #include "../../Headers/ComputerDevice.h"
 #include "../../Headers/HouseholdDevice.h"
@@ -10,6 +11,7 @@
 #include <QHeaderView>
 #include <QMessageBox>
 #include <QGroupBox>
+#include <QPushButton>
 
 OrderDialog::OrderDialog(Storage& storageRef, unsigned int existingOrderId, QWidget* parent)
     : QDialog(parent),
@@ -30,31 +32,31 @@ void OrderDialog::buildUi() {
     setWindowTitle(editMode ? QString("Карточка заказа №%1").arg(orderId) : "Регистрация нового заказа");
     resize(820, 710);
 
-    auto* mainLayout = new QVBoxLayout(this);
-    auto* formLayout = new QFormLayout();
+    auto* mainLayout = makeOwned<QVBoxLayout>(this);
+    auto* formLayout = makeOwned<QFormLayout>();
 
-    clientCombo = new QComboBox(this);
-    masterCombo = new QComboBox(this);
-    categoryCombo = new QComboBox(this);
+    clientCombo = makeOwned<QComboBox>(this);
+    masterCombo = makeOwned<QComboBox>(this);
+    categoryCombo = makeOwned<QComboBox>(this);
     categoryCombo->addItem("Компьютерная техника", "Computer");
     categoryCombo->addItem("Бытовая техника", "Household");
     categoryCombo->addItem("Радиоэлектроника", "Electronics");
 
-    modelEdit = new QLineEdit(this);
-    serialEdit = new QLineEdit(this);
-    extraSpecEdit = new QLineEdit(this);
-    extraFlagCheck = new QCheckBox(this);
-    faultEdit = new QTextEdit(this);
+    modelEdit = makeOwned<QLineEdit>(this);
+    serialEdit = makeOwned<QLineEdit>(this);
+    extraSpecEdit = makeOwned<QLineEdit>(this);
+    extraFlagCheck = makeOwned<QCheckBox>(this);
+    faultEdit = makeOwned<QTextEdit>(this);
     faultEdit->setMaximumHeight(65);
 
-    statusCombo = new QComboBox(this);
+    statusCombo = makeOwned<QComboBox>(this);
     statusCombo->addItem("Принят", 0);
     statusCombo->addItem("Диагностика", 1);
     statusCombo->addItem("Ожидание запчастей", 2);
     statusCombo->addItem("Завершён", 3);
     statusCombo->addItem("Выдан", 4);
 
-    laborSpin = new QDoubleSpinBox(this);
+    laborSpin = makeOwned<QDoubleSpinBox>(this);
     laborSpin->setRange(0.0, 10000.0);
     laborSpin->setDecimals(2);
     laborSpin->setSuffix(" BYN");
@@ -72,36 +74,36 @@ void OrderDialog::buildUi() {
 
     mainLayout->addLayout(formLayout);
 
-    auto* notesGroup = new QGroupBox("Журнал диагностики и заметки мастера", this);
-    auto* notesLayout = new QVBoxLayout(notesGroup);
-    notesHistoryEdit = new QTextEdit(this);
+    auto* notesGroup = makeOwned<QGroupBox>("Журнал диагностики и заметки мастера", this);
+    auto* notesLayout = makeOwned<QVBoxLayout>(notesGroup);
+    notesHistoryEdit = makeOwned<QTextEdit>(this);
     notesHistoryEdit->setReadOnly(true);
     notesHistoryEdit->setMaximumHeight(85);
-    auto* addNoteRow = new QHBoxLayout();
-    newNoteEdit = new QLineEdit(this);
+    auto* addNoteRow = makeOwned<QHBoxLayout>();
+    newNoteEdit = makeOwned<QLineEdit>(this);
     newNoteEdit->setPlaceholderText("Введите технологическую заметку мастера...");
-    addNoteBtn = new QPushButton("Добавить заметку", this);
+    auto* addNoteBtn = makeOwned<QPushButton>("Добавить заметку", this);
     addNoteRow->addWidget(newNoteEdit, 1);
     addNoteRow->addWidget(addNoteBtn);
     notesLayout->addWidget(notesHistoryEdit);
     notesLayout->addLayout(addNoteRow);
     mainLayout->addWidget(notesGroup);
 
-    auto* partsGroup = new QGroupBox("Складские запасные части в заказе", this);
-    auto* partsLayout = new QVBoxLayout(partsGroup);
-    auto* partControlRow = new QHBoxLayout();
-    availablePartsCombo = new QComboBox(this);
-    partQtySpin = new QSpinBox(this);
+    auto* partsGroup = makeOwned<QGroupBox>("Складские запасные части в заказе", this);
+    auto* partsLayout = makeOwned<QVBoxLayout>(partsGroup);
+    auto* partControlRow = makeOwned<QHBoxLayout>();
+    availablePartsCombo = makeOwned<QComboBox>(this);
+    partQtySpin = makeOwned<QSpinBox>(this);
     partQtySpin->setRange(1, 200);
-    reservePartBtn = new QPushButton("Списать в заказ", this);
-    returnPartBtn = new QPushButton("Вернуть на склад", this);
+    auto* reservePartBtn = makeOwned<QPushButton>("Списать в заказ", this);
+    auto* returnPartBtn = makeOwned<QPushButton>("Вернуть на склад", this);
 
     partControlRow->addWidget(availablePartsCombo, 1);
     partControlRow->addWidget(partQtySpin);
     partControlRow->addWidget(reservePartBtn);
     partControlRow->addWidget(returnPartBtn);
 
-    usedPartsTable = new QTableWidget(this);
+    usedPartsTable = makeOwned<QTableWidget>(this);
     usedPartsTable->setColumnCount(5);
     usedPartsTable->setHorizontalHeaderLabels({"ID", "Наименование", "Кол-во", "Цена (BYN)", "Сумма (BYN)"});
     usedPartsTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
@@ -114,12 +116,12 @@ void OrderDialog::buildUi() {
     partsLayout->addWidget(usedPartsTable);
     mainLayout->addWidget(partsGroup);
 
-    auto* bottomRow = new QHBoxLayout();
-    totalCostLabel = new QLabel("Итоговая стоимость: 0.00 BYN", this);
+    auto* bottomRow = makeOwned<QHBoxLayout>();
+    totalCostLabel = makeOwned<QLabel>("Итоговая стоимость: 0.00 BYN", this);
     totalCostLabel->setObjectName("totalHighlight");
-    auto* saveBtn = new QPushButton("Сохранить", this);
+    auto* saveBtn = makeOwned<QPushButton>("Сохранить", this);
     saveBtn->setObjectName("primaryBtn");
-    auto* cancelBtn = new QPushButton("Закрыть", this);
+    auto* cancelBtn = makeOwned<QPushButton>("Закрыть", this);
 
     bottomRow->addWidget(totalCostLabel, 1);
     bottomRow->addWidget(saveBtn);
@@ -195,18 +197,15 @@ void OrderDialog::loadExistingOrder() {
         return;
     }
 
-    int clientIdx = clientCombo->findData(order->getClientId());
-    if (clientIdx >= 0) {
+    if (int clientIdx = clientCombo->findData(order->getClientId()); clientIdx >= 0) {
         clientCombo->setCurrentIndex(clientIdx);
     }
-    int masterIdx = masterCombo->findData(order->getMasterId());
-    if (masterIdx >= 0) {
+    if (int masterIdx = masterCombo->findData(order->getMasterId()); masterIdx >= 0) {
         masterCombo->setCurrentIndex(masterIdx);
     }
 
     if (order->getDevice()) {
-        int catIdx = categoryCombo->findData(order->getDevice()->getCategory());
-        if (catIdx >= 0) {
+        if (int catIdx = categoryCombo->findData(order->getDevice()->getCategory()); catIdx >= 0) {
             categoryCombo->setCurrentIndex(catIdx);
         }
         modelEdit->setText(order->getDevice()->getModel());
@@ -215,8 +214,7 @@ void OrderDialog::loadExistingOrder() {
         extraSpecEdit->setText(order->getDevice()->getSpecsSummary());
     }
 
-    int statusIdx = statusCombo->findData(order->getStatusCode());
-    if (statusIdx >= 0) {
+    if (int statusIdx = statusCombo->findData(order->getStatusCode()); statusIdx >= 0) {
         statusCombo->setCurrentIndex(statusIdx);
     }
     laborSpin->setValue(order->getLaborCost());
@@ -235,20 +233,19 @@ void OrderDialog::refreshUsedPartsTable() {
     usedPartsTable->setRowCount(static_cast<int>(items.size()));
     for (int row = 0; row < static_cast<int>(items.size()); ++row) {
         const auto& item = items[static_cast<std::size_t>(row)];
-        auto* idItem = new QTableWidgetItem(QString::number(item.getPartId()));
+        auto* idItem = makeOwned<QTableWidgetItem>(QString::number(item.getPartId()));
         idItem->setData(Qt::UserRole, item.getPartId());
         usedPartsTable->setItem(row, 0, idItem);
-        usedPartsTable->setItem(row, 1, new QTableWidgetItem(item.getPartName()));
-        usedPartsTable->setItem(row, 2, new QTableWidgetItem(QString::number(item.getQuantity())));
-        usedPartsTable->setItem(row, 3, new QTableWidgetItem(QString::number(item.getPriceAtSale(), 'f', 2)));
-        usedPartsTable->setItem(row, 4, new QTableWidgetItem(QString::number(item.getSubtotal(), 'f', 2)));
+        usedPartsTable->setItem(row, 1, makeOwned<QTableWidgetItem>(item.getPartName()));
+        usedPartsTable->setItem(row, 2, makeOwned<QTableWidgetItem>(QString::number(item.getQuantity())));
+        usedPartsTable->setItem(row, 3, makeOwned<QTableWidgetItem>(QString::number(item.getPriceAtSale(), 'f', 2)));
+        usedPartsTable->setItem(row, 4, makeOwned<QTableWidgetItem>(QString::number(item.getSubtotal(), 'f', 2)));
     }
 }
 
 void OrderDialog::refreshTotalLabel() {
     if (editMode) {
-        const Order* order = storage.findOrderById(orderId);
-        if (order) {
+        if (const Order* order = storage.findOrderById(orderId); order != nullptr) {
             double factor = order->getDevice() ? order->getDevice()->getComplexityFactor() : 1.0;
             double total = (laborSpin->value() * factor) + order->calculatePartsCost();
             totalCostLabel->setText(QString("Итоговая стоимость: %1 BYN (коэф. сложности x%2)").arg(total, 0, 'f', 2).arg(factor, 0, 'f', 2));
@@ -284,8 +281,7 @@ void OrderDialog::onAddNote() {
     try {
         storage.appendOrderNote(orderId, newNoteEdit->text());
         newNoteEdit->clear();
-        const Order* order = storage.findOrderById(orderId);
-        if (order) {
+        if (const Order* order = storage.findOrderById(orderId); order != nullptr) {
             notesHistoryEdit->setPlainText(order->getDiagnosticNotes());
         }
     } catch (const AppException& ex) {
@@ -345,8 +341,7 @@ void OrderDialog::onSave() {
             double labor = laborSpin->value();
 
             std::unique_ptr<Device> device;
-            int cat = categoryCombo->currentIndex();
-            if (cat == 0) {
+            if (int cat = categoryCombo->currentIndex(); cat == 0) {
                 QString os = extraSpecEdit->text().trimmed().isEmpty() ? "Windows" : extraSpecEdit->text().trimmed();
                 device = std::make_unique<ComputerDevice>(model, serial, fault, os, extraFlagCheck->isChecked());
             } else if (cat == 1) {
@@ -364,9 +359,9 @@ void OrderDialog::onSave() {
             accept();
         } else {
             storage.updateOrderLaborCost(orderId, laborSpin->value());
-            OrderStatus chosenStatus = static_cast<OrderStatus>(statusCombo->currentData().toInt());
-            const Order* currentOrder = storage.findOrderById(orderId);
-            if (currentOrder && currentOrder->getStatus() != chosenStatus) {
+            auto chosenStatus = static_cast<OrderStatus>(statusCombo->currentData().toInt());
+            if (const Order* currentOrder = storage.findOrderById(orderId);
+                currentOrder && currentOrder->getStatus() != chosenStatus) {
                 storage.changeOrderStatus(orderId, chosenStatus);
             }
             accept();

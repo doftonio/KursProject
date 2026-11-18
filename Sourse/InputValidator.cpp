@@ -2,6 +2,7 @@
 #include "../Exeptions/InvalidInputDataException.h"
 #include <QRegularExpression>
 #include <QRegularExpressionValidator>
+#include <memory>
 
 const QString InputValidator::phonePattern = "^\\+375(17|25|29|33|44)\\d{7}$";
 const QString InputValidator::skuPattern = "^[A-Za-z0-9\\-_]{3,20}$";
@@ -89,7 +90,7 @@ void InputValidator::setupPhoneMask(QLineEdit* lineEdit) {
 
 void InputValidator::setupSkuValidator(QLineEdit* lineEdit) {
     if (lineEdit) {
-        auto* validator = new QRegularExpressionValidator(QRegularExpression(skuPattern), lineEdit);
+        const auto* validator = std::make_unique<QRegularExpressionValidator>(QRegularExpression(skuPattern), lineEdit).release();
         lineEdit->setValidator(validator);
     }
 }

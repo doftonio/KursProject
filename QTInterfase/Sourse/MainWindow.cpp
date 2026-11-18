@@ -3,6 +3,9 @@
 #include "../headers/ClientDialog.h"
 #include "../headers/MasterDialog.h"
 #include "../headers/PartDialog.h"
+#include "../headers/UiHelpers.h"
+#include "../../Headers/WorkshopReportService.h"
+#include "../../Headers/EnumUtils.h"
 #include "../../Exeptions/AppException.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -25,14 +28,15 @@ MainWindow::MainWindow(ThemeManager& themeRef, QWidget* parent)
 }
 
 QString MainWindow::formatStatusRu(OrderStatus status) {
+    using enum OrderStatus;
     switch (status) {
-        case OrderStatus::Accepted: return "Принят";
-        case OrderStatus::Diagnostics: return "Диагностика";
-        case OrderStatus::WaitingParts: return "Ожидание запчастей";
-        case OrderStatus::Completed: return "Завершён";
-        case OrderStatus::Issued: return "Выдан";
+        case Accepted: return "Принят";
+        case Diagnostics: return "Диагностика";
+        case WaitingParts: return "Ожидание запчастей";
+        case Completed: return "Завершён";
+        case Issued: return "Выдан";
+        default: return "Неизвестно";
     }
-    return "Неизвестно";
 }
 
 QString MainWindow::formatCategoryRu(const QString& category) {
@@ -52,42 +56,42 @@ void MainWindow::buildUi() {
     setWindowTitle("Система управления ремонтной мастерской");
     resize(1240, 700);
 
-    auto* central = new QWidget(this);
-    auto* mainLayout = new QVBoxLayout(central);
+    auto* central = makeOwned<QWidget>(this);
+    auto* mainLayout = makeOwned<QVBoxLayout>(central);
     mainLayout->setSpacing(10);
 
-    auto* themeFrame = new QFrame(this);
+    auto* themeFrame = makeOwned<QFrame>(this);
     themeFrame->setObjectName("themeBar");
-    auto* themeLayout = new QHBoxLayout(themeFrame);
+    auto* themeLayout = makeOwned<QHBoxLayout>(themeFrame);
     themeLayout->setContentsMargins(10, 6, 10, 6);
 
-    themeToggleBtn = new QPushButton(this);
+    themeToggleBtn = makeOwned<QPushButton>(this);
 
-    paletteCombo = new QComboBox(this);
-    paletteCombo->addItem("Синяя палитра", static_cast<int>(ColorPalette::Blue));
-    paletteCombo->addItem("Изумрудная палитра", static_cast<int>(ColorPalette::Emerald));
-    paletteCombo->addItem("Янтарная палитра", static_cast<int>(ColorPalette::Amber));
-    paletteCombo->addItem("Фиолетовая палитра", static_cast<int>(ColorPalette::Violet));
-    paletteCombo->addItem("Рубиновая палитра", static_cast<int>(ColorPalette::Crimson));
-    paletteCombo->addItem("Графитовая палитра", static_cast<int>(ColorPalette::Graphite));
+    paletteCombo = makeOwned<QComboBox>(this);
+    paletteCombo->addItem("Синяя палитра", toUnderlying(ColorPalette::Blue));
+    paletteCombo->addItem("Изумрудная палитра", toUnderlying(ColorPalette::Emerald));
+    paletteCombo->addItem("Янтарная палитра", toUnderlying(ColorPalette::Amber));
+    paletteCombo->addItem("Фиолетовая палитра", toUnderlying(ColorPalette::Violet));
+    paletteCombo->addItem("Рубиновая палитра", toUnderlying(ColorPalette::Crimson));
+    paletteCombo->addItem("Графитовая палитра", toUnderlying(ColorPalette::Graphite));
 
-    fontScaleCombo = new QComboBox(this);
-    fontScaleCombo->addItem("Шрифт: Компактный", static_cast<int>(FontScale::Compact));
-    fontScaleCombo->addItem("Шрифт: Стандартный", static_cast<int>(FontScale::Standard));
-    fontScaleCombo->addItem("Шрифт: Крупный", static_cast<int>(FontScale::Large));
+    fontScaleCombo = makeOwned<QComboBox>(this);
+    fontScaleCombo->addItem("Шрифт: Компактный", toUnderlying(FontScale::Compact));
+    fontScaleCombo->addItem("Шрифт: Стандартный", toUnderlying(FontScale::Standard));
+    fontScaleCombo->addItem("Шрифт: Крупный", toUnderlying(FontScale::Large));
 
-    roundedCheck = new QCheckBox("Скругление углов", this);
+    roundedCheck = makeOwned<QCheckBox>("Скругление углов", this);
 
-    themeLayout->addWidget(new QLabel("Оформление:", this));
+    themeLayout->addWidget(makeOwned<QLabel>("Оформление:", this));
     themeLayout->addWidget(themeToggleBtn);
-    themeLayout->addWidget(new QLabel("Цветовая схема:", this));
+    themeLayout->addWidget(makeOwned<QLabel>("Цветовая схема:", this));
     themeLayout->addWidget(paletteCombo);
     themeLayout->addWidget(fontScaleCombo);
     themeLayout->addWidget(roundedCheck);
     themeLayout->addStretch(1);
 
-    auto* filterLayout = new QHBoxLayout();
-    statusFilterCombo = new QComboBox(this);
+    auto* filterLayout = makeOwned<QHBoxLayout>();
+    statusFilterCombo = makeOwned<QComboBox>(this);
     statusFilterCombo->addItem("Все статусы", -1);
     statusFilterCombo->addItem("Принят", 0);
     statusFilterCombo->addItem("Диагностика", 1);
@@ -95,18 +99,18 @@ void MainWindow::buildUi() {
     statusFilterCombo->addItem("Завершён", 3);
     statusFilterCombo->addItem("Выдан", 4);
 
-    searchEdit = new QLineEdit(this);
+    searchEdit = makeOwned<QLineEdit>(this);
     searchEdit->setPlaceholderText("Поиск по № заказа, модели, серийному номеру, ФИО или телефону клиента...");
 
-    statsLabel = new QLabel(this);
+    statsLabel = makeOwned<QLabel>(this);
     statsLabel->setObjectName("statsBadge");
 
-    filterLayout->addWidget(new QLabel("Статус:", this));
+    filterLayout->addWidget(makeOwned<QLabel>("Статус:", this));
     filterLayout->addWidget(statusFilterCombo);
     filterLayout->addWidget(searchEdit, 1);
     filterLayout->addWidget(statsLabel);
 
-    ordersTable = new QTableWidget(this);
+    ordersTable = makeOwned<QTableWidget>(this);
     ordersTable->setColumnCount(8);
     ordersTable->setHorizontalHeaderLabels({
         "№", "Дата приёма", "Клиент", "Устройство", "Серийный №", "Мастер", "Статус", "Итого (BYN)"
@@ -118,17 +122,17 @@ void MainWindow::buildUi() {
     ordersTable->setSelectionMode(QAbstractItemView::SingleSelection);
     ordersTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
 
-    auto* buttonsLayout = new QHBoxLayout();
-    addOrderBtn = new QPushButton("Новый заказ", this);
+    auto* buttonsLayout = makeOwned<QHBoxLayout>();
+    addOrderBtn = makeOwned<QPushButton>("Новый заказ", this);
     addOrderBtn->setObjectName("primaryBtn");
-    editOrderBtn = new QPushButton("Карточка заказа", this);
-    changeStatusBtn = new QPushButton("Изменить статус", this);
-    mastersBtn = new QPushButton("Мастера", this);
-    clientsBtn = new QPushButton("Клиенты", this);
-    warehouseBtn = new QPushButton("Склад запчастей", this);
-    exportPdfBtn = new QPushButton("Акт в PDF", this);
-    reportBtn = new QPushButton("Отчёт", this);
-    backupBtn = new QPushButton("Резервная копия", this);
+    editOrderBtn = makeOwned<QPushButton>("Карточка заказа", this);
+    changeStatusBtn = makeOwned<QPushButton>("Изменить статус", this);
+    mastersBtn = makeOwned<QPushButton>("Мастера", this);
+    clientsBtn = makeOwned<QPushButton>("Клиенты", this);
+    warehouseBtn = makeOwned<QPushButton>("Склад запчастей", this);
+    exportPdfBtn = makeOwned<QPushButton>("Акт в PDF", this);
+    reportBtn = makeOwned<QPushButton>("Отчёт", this);
+    backupBtn = makeOwned<QPushButton>("Резервная копия", this);
 
     buttonsLayout->addWidget(addOrderBtn);
     buttonsLayout->addWidget(editOrderBtn);
@@ -152,20 +156,18 @@ void MainWindow::syncThemeControls() {
     bool isNight = (themeManager.getMode() == ThemeMode::Night);
     themeToggleBtn->setText(isNight ? "Режим: Ночь (вкл. День)" : "Режим: День (вкл. Ночь)");
 
-    int palIdx = paletteCombo->findData(static_cast<int>(themeManager.getPalette()));
-    if (palIdx >= 0) {
+    if (int palIdx = paletteCombo->findData(toUnderlying(themeManager.getPalette())); palIdx >= 0) {
         paletteCombo->setCurrentIndex(palIdx);
     }
 
-    int fontIdx = fontScaleCombo->findData(static_cast<int>(themeManager.getFontScale()));
-    if (fontIdx >= 0) {
+    if (int fontIdx = fontScaleCombo->findData(toUnderlying(themeManager.getFontScale())); fontIdx >= 0) {
         fontScaleCombo->setCurrentIndex(fontIdx);
     }
 
     roundedCheck->setChecked(themeManager.isRoundedCorners());
 }
 
-void MainWindow::setupConnections() {
+void MainWindow::setupConnections() const {
     connect(themeToggleBtn, &QPushButton::clicked, this, &MainWindow::onToggleThemeMode);
     connect(paletteCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MainWindow::onPaletteChanged);
     connect(fontScaleCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MainWindow::onFontScaleChanged);
@@ -203,17 +205,17 @@ void MainWindow::refreshOrdersTable() {
             : "Н/Д";
         QString serialText = order.getDevice() ? order.getDevice()->getSerialNumber() : "Н/Д";
 
-        auto* idItem = new QTableWidgetItem(QString::number(order.getId()));
+        auto* idItem = makeOwned<QTableWidgetItem>(QString::number(order.getId()));
         idItem->setData(Qt::UserRole, order.getId());
 
         ordersTable->setItem(row, 0, idItem);
-        ordersTable->setItem(row, 1, new QTableWidgetItem(order.getDateReceived()));
-        ordersTable->setItem(row, 2, new QTableWidgetItem(clientText));
-        ordersTable->setItem(row, 3, new QTableWidgetItem(modelText));
-        ordersTable->setItem(row, 4, new QTableWidgetItem(serialText));
-        ordersTable->setItem(row, 5, new QTableWidgetItem(masterText));
-        ordersTable->setItem(row, 6, new QTableWidgetItem(formatStatusRu(order.getStatus())));
-        ordersTable->setItem(row, 7, new QTableWidgetItem(QString::number(order.calculateTotalCost(), 'f', 2)));
+        ordersTable->setItem(row, 1, makeOwned<QTableWidgetItem>(order.getDateReceived()));
+        ordersTable->setItem(row, 2, makeOwned<QTableWidgetItem>(clientText));
+        ordersTable->setItem(row, 3, makeOwned<QTableWidgetItem>(modelText));
+        ordersTable->setItem(row, 4, makeOwned<QTableWidgetItem>(serialText));
+        ordersTable->setItem(row, 5, makeOwned<QTableWidgetItem>(masterText));
+        ordersTable->setItem(row, 6, makeOwned<QTableWidgetItem>(formatStatusRu(order.getStatus())));
+        ordersTable->setItem(row, 7, makeOwned<QTableWidgetItem>(QString::number(order.calculateTotalCost(), 'f', 2)));
     }
 
     statsLabel->setText(QString("Активных заказов: %1 / %2").arg(storage.countActiveOrders()).arg(Storage::maxActiveOrdersLimit));
@@ -224,7 +226,7 @@ unsigned int MainWindow::getSelectedOrderId() const {
     if (currentRow < 0) {
         return 0;
     }
-    QTableWidgetItem* item = ordersTable->item(currentRow, 0);
+    const QTableWidgetItem* item = ordersTable->item(currentRow, 0);
     return item ? item->data(Qt::UserRole).toUInt() : 0;
 }
 
@@ -291,51 +293,50 @@ void MainWindow::onChangeOrderStatus() {
     dlg.setWindowTitle(QString("Изменение статуса заказа №%1").arg(selectedId));
     dlg.resize(420, 210);
 
-    auto* layout = new QVBoxLayout(&dlg);
-    auto* form = new QFormLayout();
+    QVBoxLayout layout(&dlg);
+    QFormLayout form;
 
     QString deviceInfo = order->getDevice() ? order->getDevice()->getModel() : "Устройство";
-    auto* infoLabel = new QLabel(
+    auto* infoLabel = makeOwned<QLabel>(
         QString("<b>%1</b><br>Текущий статус: %2").arg(deviceInfo.toHtmlEscaped(), formatStatusRu(order->getStatus())),
         &dlg
     );
-    layout->addWidget(infoLabel);
+    layout.addWidget(infoLabel);
 
-    auto* statusSelect = new QComboBox(&dlg);
+    auto* statusSelect = makeOwned<QComboBox>(&dlg);
     statusSelect->addItem("Принят", 0);
     statusSelect->addItem("Диагностика", 1);
     statusSelect->addItem("Ожидание запчастей", 2);
     statusSelect->addItem("Завершён", 3);
     statusSelect->addItem("Выдан", 4);
 
-    int currentIdx = statusSelect->findData(order->getStatusCode());
-    if (currentIdx >= 0) {
+    if (int currentIdx = statusSelect->findData(order->getStatusCode()); currentIdx >= 0) {
         statusSelect->setCurrentIndex(currentIdx);
     }
 
-    auto* commentEdit = new QLineEdit(&dlg);
+    auto* commentEdit = makeOwned<QLineEdit>(&dlg);
     commentEdit->setPlaceholderText("Комментарий мастера (необязательно)...");
 
-    form->addRow("Новый статус:", statusSelect);
-    form->addRow("Примечание:", commentEdit);
-    layout->addLayout(form);
+    form.addRow("Новый статус:", statusSelect);
+    form.addRow("Примечание:", commentEdit);
+    layout.addLayout(&form);
 
-    auto* btnRow = new QHBoxLayout();
-    auto* applyBtn = new QPushButton("Применить статус", &dlg);
+    QHBoxLayout btnRow;
+    auto* applyBtn = makeOwned<QPushButton>("Применить статус", &dlg);
     applyBtn->setObjectName("primaryBtn");
-    auto* cancelBtn = new QPushButton("Отмена", &dlg);
-    btnRow->addStretch(1);
-    btnRow->addWidget(applyBtn);
-    btnRow->addWidget(cancelBtn);
-    layout->addLayout(btnRow);
+    auto* cancelBtn = makeOwned<QPushButton>("Отмена", &dlg);
+    btnRow.addStretch(1);
+    btnRow.addWidget(applyBtn);
+    btnRow.addWidget(cancelBtn);
+    layout.addLayout(&btnRow);
 
     connect(applyBtn, &QPushButton::clicked, &dlg, &QDialog::accept);
     connect(cancelBtn, &QPushButton::clicked, &dlg, &QDialog::reject);
 
     if (dlg.exec() == QDialog::Accepted) {
         try {
-            auto newStatus = static_cast<OrderStatus>(statusSelect->currentData().toInt());
-            if (order->getStatus() != newStatus) {
+            if (auto newStatus = static_cast<OrderStatus>(statusSelect->currentData().toInt());
+                order->getStatus() != newStatus) {
                 storage.changeOrderStatus(selectedId, newStatus);
             }
             if (!commentEdit->text().trimmed().isEmpty()) {
@@ -385,7 +386,7 @@ void MainWindow::onExportWarrantyPdf() {
         return;
     }
     try {
-        QString html = storage.generateWarrantyActHtml(selectedId);
+        QString html = WorkshopReportService::generateWarrantyActHtml(storage, selectedId);
         QPrinter printer(QPrinter::HighResolution);
         printer.setOutputFormat(QPrinter::PdfFormat);
         printer.setOutputFileName(fileName);
@@ -401,7 +402,7 @@ void MainWindow::onExportWarrantyPdf() {
 
 void MainWindow::onShowReport() {
     QDate today = QDate::currentDate();
-    PerformanceReport rep = storage.generatePerformanceReport(today.addYears(-1), today);
+    PerformanceReport rep = WorkshopReportService::generatePerformanceReport(storage, today.addYears(-1), today);
     QString msg = QString(
         "Всего заказов в базе: %1\n"
         "Активных заказов в работе: %2\n"
