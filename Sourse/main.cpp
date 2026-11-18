@@ -16,11 +16,6 @@ int main(int argc, char* argv[]) {
         }
     }
 
-
-
-
-
-
     if (consoleMode) {
         try {
             Storage storage;

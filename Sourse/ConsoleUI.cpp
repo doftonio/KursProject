@@ -6,6 +6,7 @@
 #include "../Headers/ElectronicDevice.h"
 #include "../Exeptions/AppException.h"
 #include <iostream>
+#include <fstream>
 #include <format>
 #include <limits>
 #include <stdexcept>
@@ -30,6 +31,7 @@ void ConsoleUI::printMainMenu() const {
               << "10. Financial Performance Report\n"
               << "11. Backup / Restore Database\n"
               << "12. Masters Staff Management\n"
+              << "13. Export Acceptance Receipt (HTML)\n"
               << "0. Exit Console Mode\n"
               << "----------------------------------------\n";
 }
@@ -282,11 +284,24 @@ void ConsoleUI::handleManageMasters() {
     }
 }
 
+void ConsoleUI::handleExportAcceptanceReceipt() const {
+    auto orderId = static_cast<unsigned int>(readInt("Enter Order ID: ", 1, 100000));
+    QString html = WorkshopReportService::generateAcceptanceReceiptHtml(storage, orderId);
+    std::string fileName = std::format("Order_{}_Receipt.html", orderId);
+    if (std::ofstream out(fileName, std::ios::binary); out.is_open()) {
+        std::string utf8 = html.toStdString();
+        out.write(utf8.data(), static_cast<std::streamsize>(utf8.size()));
+        std::cout << "[OK] Acceptance receipt exported to: " << fileName << "\n";
+    } else {
+        std::cout << "[File Error] Could not write file: " << fileName << "\n";
+    }
+}
+
 void ConsoleUI::run() {
     bool running = true;
     while (running) {
         printMainMenu();
-        int choice = readInt("Choose option: ", 0, 12);
+        int choice = readInt("Choose option: ", 0, 13);
         try {
             switch (choice) {
                 case 1: handleListOrders(); break;
@@ -301,6 +316,7 @@ void ConsoleUI::run() {
                 case 10: handleShowReport(); break;
                 case 11: handleBackupAndRestore(); break;
                 case 12: handleManageMasters(); break;
+                case 13: handleExportAcceptanceReceipt(); break;
                 case 0: running = false; break;
                 default: break;
             }

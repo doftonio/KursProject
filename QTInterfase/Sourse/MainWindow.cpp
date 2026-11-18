@@ -54,7 +54,7 @@ QString MainWindow::formatCategoryRu(const QString& category) {
 
 void MainWindow::buildUi() {
     setWindowTitle("Система управления ремонтной мастерской");
-    resize(1240, 700);
+    resize(1320, 710);
 
     auto* central = makeOwned<QWidget>(this);
     auto* mainLayout = makeOwned<QVBoxLayout>(central);
@@ -123,16 +123,17 @@ void MainWindow::buildUi() {
     ordersTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
 
     auto* buttonsLayout = makeOwned<QHBoxLayout>();
-    addOrderBtn = makeOwned<QPushButton>("Новый заказ", this);
+    auto* addOrderBtn = makeOwned<QPushButton>("Новый заказ", this);
     addOrderBtn->setObjectName("primaryBtn");
-    editOrderBtn = makeOwned<QPushButton>("Карточка заказа", this);
-    changeStatusBtn = makeOwned<QPushButton>("Изменить статус", this);
-    mastersBtn = makeOwned<QPushButton>("Мастера", this);
-    clientsBtn = makeOwned<QPushButton>("Клиенты", this);
-    warehouseBtn = makeOwned<QPushButton>("Склад запчастей", this);
-    exportPdfBtn = makeOwned<QPushButton>("Акт в PDF", this);
-    reportBtn = makeOwned<QPushButton>("Отчёт", this);
-    backupBtn = makeOwned<QPushButton>("Резервная копия", this);
+    auto* editOrderBtn = makeOwned<QPushButton>("Карточка заказа", this);
+    auto* changeStatusBtn = makeOwned<QPushButton>("Изменить статус", this);
+    auto* mastersBtn = makeOwned<QPushButton>("Мастера", this);
+    auto* clientsBtn = makeOwned<QPushButton>("Клиенты", this);
+    auto* warehouseBtn = makeOwned<QPushButton>("Склад запчастей", this);
+    auto* receiptPdfBtn = makeOwned<QPushButton>("Квитанция приёма", this);
+    auto* warrantyPdfBtn = makeOwned<QPushButton>("Гарантийный акт", this);
+    auto* reportBtn = makeOwned<QPushButton>("Отчёт", this);
+    auto* backupBtn = makeOwned<QPushButton>("Резервная копия", this);
 
     buttonsLayout->addWidget(addOrderBtn);
     buttonsLayout->addWidget(editOrderBtn);
@@ -140,9 +141,21 @@ void MainWindow::buildUi() {
     buttonsLayout->addWidget(mastersBtn);
     buttonsLayout->addWidget(clientsBtn);
     buttonsLayout->addWidget(warehouseBtn);
-    buttonsLayout->addWidget(exportPdfBtn);
+    buttonsLayout->addWidget(receiptPdfBtn);
+    buttonsLayout->addWidget(warrantyPdfBtn);
     buttonsLayout->addWidget(reportBtn);
     buttonsLayout->addWidget(backupBtn);
+
+    connect(addOrderBtn, &QPushButton::clicked, this, &MainWindow::onAddOrder);
+    connect(editOrderBtn, &QPushButton::clicked, this, &MainWindow::onEditOrder);
+    connect(changeStatusBtn, &QPushButton::clicked, this, &MainWindow::onChangeOrderStatus);
+    connect(mastersBtn, &QPushButton::clicked, this, &MainWindow::onOpenMasters);
+    connect(clientsBtn, &QPushButton::clicked, this, &MainWindow::onOpenClients);
+    connect(warehouseBtn, &QPushButton::clicked, this, &MainWindow::onOpenWarehouse);
+    connect(receiptPdfBtn, &QPushButton::clicked, this, &MainWindow::onExportAcceptanceReceiptPdf);
+    connect(warrantyPdfBtn, &QPushButton::clicked, this, &MainWindow::onExportWarrantyPdf);
+    connect(reportBtn, &QPushButton::clicked, this, &MainWindow::onShowReport);
+    connect(backupBtn, &QPushButton::clicked, this, &MainWindow::onBackupDatabase);
 
     mainLayout->addWidget(themeFrame);
     mainLayout->addLayout(filterLayout);
@@ -173,16 +186,7 @@ void MainWindow::setupConnections() const {
     connect(fontScaleCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MainWindow::onFontScaleChanged);
     connect(roundedCheck, &QCheckBox::toggled, this, &MainWindow::onRoundedChanged);
 
-    connect(addOrderBtn, &QPushButton::clicked, this, &MainWindow::onAddOrder);
-    connect(editOrderBtn, &QPushButton::clicked, this, &MainWindow::onEditOrder);
-    connect(changeStatusBtn, &QPushButton::clicked, this, &MainWindow::onChangeOrderStatus);
     connect(ordersTable, &QTableWidget::itemDoubleClicked, this, &MainWindow::onEditOrder);
-    connect(mastersBtn, &QPushButton::clicked, this, &MainWindow::onOpenMasters);
-    connect(clientsBtn, &QPushButton::clicked, this, &MainWindow::onOpenClients);
-    connect(warehouseBtn, &QPushButton::clicked, this, &MainWindow::onOpenWarehouse);
-    connect(exportPdfBtn, &QPushButton::clicked, this, &MainWindow::onExportWarrantyPdf);
-    connect(reportBtn, &QPushButton::clicked, this, &MainWindow::onShowReport);
-    connect(backupBtn, &QPushButton::clicked, this, &MainWindow::onBackupDatabase);
     connect(statusFilterCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MainWindow::onFilterChanged);
     connect(searchEdit, &QLineEdit::textChanged, this, &MainWindow::onFilterChanged);
 }
@@ -228,6 +232,26 @@ unsigned int MainWindow::getSelectedOrderId() const {
     }
     const QTableWidgetItem* item = ordersTable->item(currentRow, 0);
     return item ? item->data(Qt::UserRole).toUInt() : 0;
+}
+
+void MainWindow::exportHtmlToPdf(const QString& dialogTitle, const QString& defaultFileName, const QString& htmlContent, const QString& successMessage) {
+    QString fileName = QFileDialog::getSaveFileName(
+        this,
+        dialogTitle,
+        defaultFileName,
+        "PDF-документы (*.pdf)"
+    );
+    if (fileName.isEmpty()) {
+        return;
+    }
+    QPrinter printer(QPrinter::HighResolution);
+    printer.setOutputFormat(QPrinter::PdfFormat);
+    printer.setOutputFileName(fileName);
+
+    QTextDocument doc;
+    doc.setHtml(htmlContent);
+    doc.print(&printer);
+    QMessageBox::information(this, "Экспорт завершён", successMessage);
 }
 
 void MainWindow::onToggleThemeMode() {
@@ -370,31 +394,39 @@ void MainWindow::onOpenWarehouse() {
     dialog.exec();
 }
 
+void MainWindow::onExportAcceptanceReceiptPdf() {
+    unsigned int selectedId = getSelectedOrderId();
+    if (selectedId == 0) {
+        QMessageBox::information(this, "Выбор заказа", "Пожалуйста, выберите заказ для формирования приёмной квитанции.");
+        return;
+    }
+    try {
+        QString html = WorkshopReportService::generateAcceptanceReceiptHtml(storage, selectedId);
+        exportHtmlToPdf(
+            "Сохранить приёмную квитанцию в PDF",
+            QString("Заказ_%1_Квитанция_приема.pdf").arg(selectedId),
+            html,
+            "Приёмная квитанция (акт приёма-передачи в ремонт) успешно сохранена в файл PDF."
+        );
+    } catch (const AppException& ex) {
+        QMessageBox::warning(this, "Ошибка экспорта", QString::fromStdString(ex.what()));
+    }
+}
+
 void MainWindow::onExportWarrantyPdf() {
     unsigned int selectedId = getSelectedOrderId();
     if (selectedId == 0) {
-        QMessageBox::information(this, "Выбор заказа", "Пожалуйста, выберите заказ для формирования акта.");
-        return;
-    }
-    QString fileName = QFileDialog::getSaveFileName(
-        this,
-        "Сохранить гарантийный акт в PDF",
-        QString("Заказ_%1_Акт.pdf").arg(selectedId),
-        "PDF-документы (*.pdf)"
-    );
-    if (fileName.isEmpty()) {
+        QMessageBox::information(this, "Выбор заказа", "Пожалуйста, выберите заказ для формирования гарантийного акта.");
         return;
     }
     try {
         QString html = WorkshopReportService::generateWarrantyActHtml(storage, selectedId);
-        QPrinter printer(QPrinter::HighResolution);
-        printer.setOutputFormat(QPrinter::PdfFormat);
-        printer.setOutputFileName(fileName);
-
-        QTextDocument doc;
-        doc.setHtml(html);
-        doc.print(&printer);
-        QMessageBox::information(this, "Экспорт завершён", "Гарантийный акт успешно сохранён в файл PDF.");
+        exportHtmlToPdf(
+            "Сохранить расчётно-гарантийный акт в PDF",
+            QString("Заказ_%1_Гарантийный_акт.pdf").arg(selectedId),
+            html,
+            "Расчётно-гарантийный акт выполненных работ успешно сохранён в файл PDF."
+        );
     } catch (const AppException& ex) {
         QMessageBox::warning(this, "Ошибка экспорта", QString::fromStdString(ex.what()));
     }

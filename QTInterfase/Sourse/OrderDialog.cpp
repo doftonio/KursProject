@@ -1,5 +1,6 @@
 #include "../headers/OrderDialog.h"
 #include "../headers/UiHelpers.h"
+#include "../../Headers/WorkshopReportService.h"
 #include "../../Headers/InputValidator.h"
 #include "../../Headers/ComputerDevice.h"
 #include "../../Headers/HouseholdDevice.h"
@@ -10,6 +11,9 @@
 #include <QFormLayout>
 #include <QHeaderView>
 #include <QMessageBox>
+#include <QFileDialog>
+#include <QPrinter>
+#include <QTextDocument>
 #include <QGroupBox>
 #include <QPushButton>
 
@@ -119,11 +123,14 @@ void OrderDialog::buildUi() {
     auto* bottomRow = makeOwned<QHBoxLayout>();
     totalCostLabel = makeOwned<QLabel>("Итоговая стоимость: 0.00 BYN", this);
     totalCostLabel->setObjectName("totalHighlight");
+    auto* receiptBtn = makeOwned<QPushButton>("Квитанция приёма (PDF)", this);
+    receiptBtn->setEnabled(editMode);
     auto* saveBtn = makeOwned<QPushButton>("Сохранить", this);
     saveBtn->setObjectName("primaryBtn");
     auto* cancelBtn = makeOwned<QPushButton>("Закрыть", this);
 
     bottomRow->addWidget(totalCostLabel, 1);
+    bottomRow->addWidget(receiptBtn);
     bottomRow->addWidget(saveBtn);
     bottomRow->addWidget(cancelBtn);
     mainLayout->addLayout(bottomRow);
@@ -147,6 +154,7 @@ void OrderDialog::buildUi() {
     connect(addNoteBtn, &QPushButton::clicked, this, &OrderDialog::onAddNote);
     connect(reservePartBtn, &QPushButton::clicked, this, &OrderDialog::onReservePart);
     connect(returnPartBtn, &QPushButton::clicked, this, &OrderDialog::onReturnPart);
+    connect(receiptBtn, &QPushButton::clicked, this, &OrderDialog::onExportReceipt);
     connect(saveBtn, &QPushButton::clicked, this, &OrderDialog::onSave);
     connect(cancelBtn, &QPushButton::clicked, this, &QDialog::reject);
     connect(laborSpin, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, [this](double) {
@@ -326,6 +334,34 @@ void OrderDialog::onReturnPart() {
     }
 }
 
+void OrderDialog::onExportReceipt() {
+    if (!editMode) {
+        return;
+    }
+    try {
+        QString html = WorkshopReportService::generateAcceptanceReceiptHtml(storage, orderId);
+        QString fileName = QFileDialog::getSaveFileName(
+            this,
+            "Сохранить приёмную квитанцию в PDF",
+            QString("Заказ_%1_Квитанция_приема.pdf").arg(orderId),
+            "PDF-документы (*.pdf)"
+        );
+        if (fileName.isEmpty()) {
+            return;
+        }
+        QPrinter printer(QPrinter::HighResolution);
+        printer.setOutputFormat(QPrinter::PdfFormat);
+        printer.setOutputFileName(fileName);
+
+        QTextDocument doc;
+        doc.setHtml(html);
+        doc.print(&printer);
+        QMessageBox::information(this, "Экспорт завершён", "Приёмная квитанция успешно сохранена в файл PDF.");
+    } catch (const AppException& ex) {
+        QMessageBox::warning(this, "Ошибка экспорта", QString::fromStdString(ex.what()));
+    }
+}
+
 void OrderDialog::onSave() {
     try {
         if (!editMode) {
@@ -355,7 +391,17 @@ void OrderDialog::onSave() {
                 device = std::make_unique<ElectronicDevice>(model, serial, fault, rev, extraFlagCheck->isChecked());
             }
 
-            storage.addOrder(clientId, masterId, std::move(device), labor);
+            const Order& created = storage.addOrder(clientId, masterId, std::move(device), labor);
+            if (auto answer = QMessageBox::question(
+                    this,
+                    "Заказ принят",
+                    QString("Заказ №%1 успешно зарегистрирован.\nСформировать приёмную квитанцию (PDF) для выдачи клиенту?").arg(created.getId()),
+                    QMessageBox::Yes | QMessageBox::No
+                ); answer == QMessageBox::Yes) {
+                orderId = created.getId();
+                editMode = true;
+                onExportReceipt();
+            }
             accept();
         } else {
             storage.updateOrderLaborCost(orderId, laborSpin->value());

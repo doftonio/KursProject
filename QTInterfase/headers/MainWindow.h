@@ -28,21 +28,12 @@ private:
     QLineEdit* searchEdit;
     QLabel* statsLabel;
 
-    QPushButton* addOrderBtn;
-    QPushButton* editOrderBtn;
-    QPushButton* changeStatusBtn;
-    QPushButton* mastersBtn;
-    QPushButton* clientsBtn;
-    QPushButton* warehouseBtn;
-    QPushButton* exportPdfBtn;
-    QPushButton* reportBtn;
-    QPushButton* backupBtn;
-
     void buildUi();
     void syncThemeControls();
     void setupConnections() const;
     void refreshOrdersTable();
     unsigned int getSelectedOrderId() const;
+    void exportHtmlToPdf(const QString& dialogTitle, const QString& defaultFileName, const QString& htmlContent, const QString& successMessage);
     static QString formatStatusRu(OrderStatus status);
     static QString formatCategoryRu(const QString& category);
 
@@ -58,6 +49,7 @@ private slots:
     void onOpenMasters();
     void onOpenClients();
     void onOpenWarehouse();
+    void onExportAcceptanceReceiptPdf();
     void onExportWarrantyPdf();
     void onShowReport();
     void onBackupDatabase();

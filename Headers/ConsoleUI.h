@@ -25,6 +25,7 @@ private:
     void handleShowReport() const;
     void handleBackupAndRestore();
     void handleManageMasters();
+    void handleExportAcceptanceReceipt() const;
 
 public:
     explicit ConsoleUI(Storage& storageRef);

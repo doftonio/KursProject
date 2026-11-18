@@ -50,6 +50,7 @@ private slots:
     void onAddNote();
     void onReservePart();
     void onReturnPart();
+    void onExportReceipt();
     void onSave();
 
 public:

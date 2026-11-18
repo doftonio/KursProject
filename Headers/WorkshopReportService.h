@@ -16,6 +16,7 @@ struct PerformanceReport {
 
 class WorkshopReportService {
 public:
+    static QString generateAcceptanceReceiptHtml(const Storage& storage, unsigned int orderId);
     static QString generateWarrantyActHtml(const Storage& storage, unsigned int orderId);
     static PerformanceReport generatePerformanceReport(const Storage& storage, const QDate& from, const QDate& to);
 };
