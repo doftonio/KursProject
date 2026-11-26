@@ -543,13 +543,12 @@ void OrderDialog::saveNewOrder() {
     auto device = buildDeviceFromForm();
     const Order& created = storage.addOrder(clientId, masterId, std::move(device), laborSpin->value());
 
-    const auto answer = QMessageBox::question(
-        this,
-        "Заказ принят",
-        QString("Заказ №%1 успешно зарегистрирован.\nСформировать приёмную квитанцию (PDF) для выдачи клиенту?").arg(created.getId()),
-        QMessageBox::Yes | QMessageBox::No
-    );
-    if (answer == QMessageBox::Yes) {
+    if (const auto answer = QMessageBox::question(
+            this,
+            "Заказ принят",
+            QString("Заказ №%1 успешно зарегистрирован.\nСформировать приёмную квитанцию (PDF) для выдачи клиенту?").arg(created.getId()),
+            QMessageBox::Yes | QMessageBox::No
+        ); answer == QMessageBox::Yes) {
         orderId = created.getId();
         editMode = true;
         receiptBtn->setEnabled(true);
@@ -573,13 +572,12 @@ void OrderDialog::saveExistingOrder() {
     }
 
     if (chosenStatus == OrderStatus::Issued) {
-        const auto confirm = QMessageBox::question(
-            this,
-            "Перемещение в архив",
-            QString("После перевода заказа №%1 в статус «Выдан» он будет перемещён в архив и заблокирован для редактирования.\nПродолжить?").arg(orderId),
-            QMessageBox::Yes | QMessageBox::No
-        );
-        if (confirm != QMessageBox::Yes) {
+        if (const auto confirm = QMessageBox::question(
+                this,
+                "Перемещение в архив",
+                QString("После перевода заказа №%1 в статус «Выдан» он будет перемещён в архив и заблокирован для редактирования.\nПродолжить?").arg(orderId),
+                QMessageBox::Yes | QMessageBox::No
+            ); confirm != QMessageBox::Yes) {
             return;
         }
     }

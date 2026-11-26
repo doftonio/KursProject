@@ -9,6 +9,8 @@ private:
     Storage& storage;
 
     void printMainMenu() const;
+    template <typename T>
+    T readNumber(const std::string& prompt, T minVal, T maxVal, const std::string& typeLabel) const;
     int readInt(const std::string& prompt, int minVal, int maxVal) const;
     unsigned int readId(const std::string& prompt, unsigned int minVal = 1, unsigned int maxVal = 100000) const;
     double readDouble(const std::string& prompt, double minVal, double maxVal) const;

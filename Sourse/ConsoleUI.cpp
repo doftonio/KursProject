@@ -44,8 +44,9 @@ void ConsoleUI::printMainMenu() const {
     );
 }
 
-int ConsoleUI::readInt(const std::string& prompt, int minVal, int maxVal) const {
-    int value = 0;
+template <typename T>
+T ConsoleUI::readNumber(const std::string& prompt, T minVal, T maxVal, const std::string& typeLabel) const {
+    T value{};
     while (true) {
         std::cout << prompt;
         if (std::cin >> value && value >= minVal && value <= maxVal) {
@@ -54,8 +55,12 @@ int ConsoleUI::readInt(const std::string& prompt, int minVal, int maxVal) const 
         }
         std::cin.clear();
         std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-        std::cout << std::format("[Input Error] Enter an integer between {} and {}.\n", minVal, maxVal);
+        std::cout << std::format("[Input Error] Enter {} between {} and {}.\n", typeLabel, minVal, maxVal);
     }
+}
+
+int ConsoleUI::readInt(const std::string& prompt, int minVal, int maxVal) const {
+    return readNumber<int>(prompt, minVal, maxVal, "an integer");
 }
 
 unsigned int ConsoleUI::readId(const std::string& prompt, unsigned int minVal, unsigned int maxVal) const {
@@ -63,17 +68,7 @@ unsigned int ConsoleUI::readId(const std::string& prompt, unsigned int minVal, u
 }
 
 double ConsoleUI::readDouble(const std::string& prompt, double minVal, double maxVal) const {
-    double value = 0.0;
-    while (true) {
-        std::cout << prompt;
-        if (std::cin >> value && value >= minVal && value <= maxVal) {
-            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-            return value;
-        }
-        std::cin.clear();
-        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-        std::cout << std::format("[Input Error] Enter a number between {:.2f} and {:.2f}.\n", minVal, maxVal);
-    }
+    return readNumber<double>(prompt, minVal, maxVal, "a number");
 }
 
 std::string ConsoleUI::readLine(const std::string& prompt) const {
