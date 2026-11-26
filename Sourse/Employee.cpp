@@ -1,8 +1,11 @@
 #include "../Headers/Employee.h"
 #include "../Exeptions/InvalidInputDataException.h"
 
-Employee::Employee(unsigned int id, const QString& name, const QString& position, double rateMultiplier)
-    : id(id), name(name), position(position), rateMultiplier(rateMultiplier > 0.0 ? rateMultiplier : 1.0) {}
+Employee::Employee(unsigned int empId, const QString& empName, const QString& empPosition, double multiplier)
+    : id(empId),
+      name(empName),
+      position(empPosition),
+      rateMultiplier(multiplier > 0.0 ? multiplier : 1.0) {}
 
 unsigned int Employee::getId() const {
     return id;

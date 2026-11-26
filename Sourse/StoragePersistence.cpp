@@ -185,7 +185,7 @@ void StoragePersistence::saveOrders(const Repository<Order>& orders) const {
     JsonFileHelper::writeAtomic(filepathOrders, QJsonDocument(arr).toJson(QJsonDocument::Indented));
 }
 
-void StoragePersistence::loadAll(WorkshopCollections collections, IdCounters& counters) const {
+void StoragePersistence::loadAll(const WorkshopCollections& collections, IdCounters& counters) const {
     loadAppState(counters);
     loadClients(collections.clients, counters);
     loadMasters(collections.masters, counters);
@@ -194,7 +194,7 @@ void StoragePersistence::loadAll(WorkshopCollections collections, IdCounters& co
     saveAppState(counters);
 }
 
-void StoragePersistence::saveAll(ConstWorkshopCollections collections, const IdCounters& counters) const {
+void StoragePersistence::saveAll(const ConstWorkshopCollections& collections, const IdCounters& counters) const {
     saveAppState(counters);
     saveClients(collections.clients);
     saveMasters(collections.masters);
@@ -202,7 +202,7 @@ void StoragePersistence::saveAll(ConstWorkshopCollections collections, const IdC
     saveOrders(collections.orders);
 }
 
-QString StoragePersistence::backup(ConstWorkshopCollections collections, const IdCounters& counters, const QString& backupRoot) const {
+QString StoragePersistence::backup(const ConstWorkshopCollections& collections, const IdCounters& counters, const QString& backupRoot) const {
     saveAll(collections, counters);
     QStringList fileNames = {
         "app_state.json",
@@ -214,7 +214,7 @@ QString StoragePersistence::backup(ConstWorkshopCollections collections, const I
     return JsonFileHelper::copyBackupSnapshot(dataDirectory, backupRoot, fileNames);
 }
 
-void StoragePersistence::restore(WorkshopCollections collections, IdCounters& counters, const QString& backupFolder) const {
+void StoragePersistence::restore(const WorkshopCollections& collections, IdCounters& counters, const QString& backupFolder) const {
     QStringList fileNames = {
         "app_state.json",
         "clients.json",

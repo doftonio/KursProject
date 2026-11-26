@@ -157,22 +157,10 @@ void WorkersTab::onWorkerCellChanged(int row, int) {
         return;
     }
 
-    unsigned int workerId = idItem->data(Qt::UserRole).toUInt();
-    Master* existing = const_cast<Master*>(storage.findMasterById(workerId));
-    if (!existing) {
-        return;
-    }
-
+    const auto workerId = idItem->data(Qt::UserRole).toUInt();
     try {
-        InputValidator::validateStringNotEmpty(nameItem->text(), "Worker Name");
-        InputValidator::validatePhone(phoneItem->text());
-        QString parsedSpec = parseSpecFromLabel(specItem->text());
-        InputValidator::validateStringNotEmpty(parsedSpec, "Profile");
-
-        existing->setName(InputValidator::sanitizeString(nameItem->text()));
-        existing->setPhone(InputValidator::normalizePhone(phoneItem->text()));
-        existing->setSpecialization(InputValidator::sanitizeString(parsedSpec));
-        storage.saveDatabaseToJson();
+        const auto parsedSpec = parseSpecFromLabel(specItem->text());
+        storage.updateMasterDetails(workerId, nameItem->text(), phoneItem->text(), parsedSpec);
         refreshTable();
     } catch (const AppException& ex) {
         QMessageBox::warning(this, "Ошибка редактирования", QString::fromStdString(ex.what()));

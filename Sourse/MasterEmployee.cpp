@@ -2,19 +2,19 @@
 #include "../Exeptions/InvalidInputDataException.h"
 
 MasterEmployee::MasterEmployee(
-    unsigned int id,
-    unsigned int masterId,
-    const QString& name,
-    const QString& specialization,
-    double sharedMinBase,
-    double pieceworkEarnings,
-    double rateMultiplier
+    unsigned int empId,
+    unsigned int linkedMasterId,
+    const QString& empName,
+    const QString& empSpecialization,
+    double minBase,
+    double piecework,
+    double multiplier
 )
-    : Employee(id, name, "Мастер", rateMultiplier),
-      masterId(masterId),
-      specialization(specialization),
-      sharedMinBase(sharedMinBase >= 0.0 ? sharedMinBase : 0.0),
-      pieceworkEarnings(pieceworkEarnings >= 0.0 ? pieceworkEarnings : 0.0) {}
+    : Employee(empId, empName, "Мастер", multiplier),
+      masterId(linkedMasterId),
+      specialization(empSpecialization),
+      sharedMinBase(minBase >= 0.0 ? minBase : 0.0),
+      pieceworkEarnings(piecework >= 0.0 ? piecework : 0.0) {}
 
 unsigned int MasterEmployee::getMasterId() const {
     return masterId;

@@ -1,8 +1,9 @@
 #include "../Headers/StaffEmployee.h"
 #include "../Exeptions/InvalidInputDataException.h"
 
-StaffEmployee::StaffEmployee(unsigned int id, const QString& name, const QString& position, double baseSalary, double rateMultiplier)
-    : Employee(id, name, position, rateMultiplier), baseSalary(baseSalary >= 0.0 ? baseSalary : 0.0) {}
+StaffEmployee::StaffEmployee(unsigned int empId, const QString& empName, const QString& empPosition, double salary, double multiplier)
+    : Employee(empId, empName, empPosition, multiplier),
+      baseSalary(salary >= 0.0 ? salary : 0.0) {}
 
 double StaffEmployee::getBaseSalary() const {
     return baseSalary;

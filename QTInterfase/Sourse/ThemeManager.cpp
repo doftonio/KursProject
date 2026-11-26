@@ -162,41 +162,7 @@ QString ThemeManager::buildStyleSheet() const {
     int fontPt = resolveFontPoints();
     int radius = roundedCorners ? 6 : 2;
 
-    return QString(
-        "QMainWindow, QDialog { background-color: %1; color: %2; }"
-        "QTabWidget::pane { border: 1px solid %3; border-radius: %4px; background-color: %1; top: -1px; }"
-        "QTabBar::tab { background-color: %7; color: %2; border: 1px solid %3; border-bottom: none; border-top-left-radius: %4px; border-top-right-radius: %4px; padding: 7px 16px; margin-right: 3px; font-weight: 600; }"
-        "QTabBar::tab:selected { background-color: %5; color: #FFFFFF; border-color: %5; }"
-        "QTabBar::tab:hover:!selected { background-color: %8; }"
-        "QGroupBox { border: 1px solid %3; border-radius: %4px; margin-top: 12px; padding-top: 10px; font-weight: bold; }"
-        "QGroupBox::title { subcontrol-origin: margin; subcontrol-position: top left; padding: 0 6px; color: %5; }"
-        "QLineEdit, QTextEdit, QComboBox, QSpinBox, QDoubleSpinBox { background-color: %6; color: %2; border: 1px solid %3; border-radius: %4px; padding: 5px 8px; selection-background-color: %5; selection-color: #FFFFFF; }"
-        "QLineEdit:focus, QTextEdit:focus, QComboBox:focus, QSpinBox:focus, QDoubleSpinBox:focus { border: 2px solid %5; }"
-        "QLineEdit[lockedField=\"true\"], QLineEdit[lockedField=\"true\"]:disabled, QTextEdit[lockedField=\"true\"], QTextEdit[lockedField=\"true\"]:disabled, QComboBox[lockedField=\"true\"], QComboBox[lockedField=\"true\"]:disabled, QSpinBox[lockedField=\"true\"], QSpinBox[lockedField=\"true\"]:disabled, QDoubleSpinBox[lockedField=\"true\"], QDoubleSpinBox[lockedField=\"true\"]:disabled, QCheckBox[lockedField=\"true\"], QCheckBox[lockedField=\"true\"]:disabled { color: #7A869A; }"
-        "QComboBox::drop-down { border: none; width: 22px; }"
-        "QComboBox QAbstractItemView { background-color: %6; color: %2; border: 1px solid %3; selection-background-color: %5; selection-color: #FFFFFF; }"
-        "QPushButton { background-color: %7; color: %2; border: 1px solid %3; border-radius: %4px; padding: 6px 12px; font-weight: 600; }"
-        "QPushButton:hover { background-color: %8; border-color: %5; }"
-        "QPushButton:pressed { background-color: %5; color: #FFFFFF; }"
-        "QPushButton:disabled { opacity: 0.45; }"
-        "QPushButton#primaryBtn { background-color: %5; color: #FFFFFF; border: 1px solid %5; }"
-        "QPushButton#primaryBtn:hover { background-color: %9; border-color: %9; }"
-        "QPushButton#dangerBtn { border: 1px solid #DC2626; color: #DC2626; }"
-        "QPushButton#dangerBtn:hover { background-color: #DC2626; color: #FFFFFF; }"
-        "QTableWidget { background-color: %6; alternate-background-color: %10; color: %2; gridline-color: %3; border: 1px solid %3; border-radius: %4px; selection-background-color: %5; selection-color: #FFFFFF; }"
-        "QHeaderView::section { background-color: %7; color: %2; padding: 6px; border: none; border-bottom: 2px solid %5; border-right: 1px solid %3; font-weight: bold; }"
-        "QCheckBox { spacing: 7px; color: %2; }"
-        "QCheckBox::indicator { width: 17px; height: 17px; border: 1px solid %3; border-radius: 4px; background-color: %6; }"
-        "QCheckBox::indicator:hover { border: 1px solid %5; }"
-        "QCheckBox::indicator:checked { background-color: %5; border-color: %5; image: url(\"%12\"); }"
-        "QLabel#statsBadge { background-color: %6; border: 1px solid %5; border-radius: %4px; padding: 5px 10px; font-weight: bold; color: %5; }"
-        "QLabel#archiveNotice { background-color: %6; border: 1px solid %3; border-radius: %4px; padding: 5px 10px; font-weight: 600; }"
-        "QLabel#totalHighlight { font-size: %11pt; font-weight: bold; color: %5; }"
-        "QFrame#themeBar { background-color: %6; border: 1px solid %3; border-radius: %4px; }"
-        "QFrame#lockedOverlay { background-color: rgba(120, 130, 145, 115); border: 1px dashed %3; border-radius: %4px; }"
-        
-    )
-    .arg(c.windowBg)
+    return QString(R"(QTabWidget::pane { border: 1px solid %3; border-radius: %4px; background-color: %1; top: -1px; }QTabBar::tab { background-color: %7; color: %2; border: 1px solid %3; border-bottom: none; border-top-left-radius: %4px; border-top-right-radius: %4px; padding: 7px 16px; margin-right: 3px; font-weight: 600; }QTabBar::tab:selected { background-color: %5; color: #FFFFFF; border-color: %5; }QTabBar::tab:hover:!selected { background-color: %8; }QGroupBox { border: 1px solid %3; border-radius: %4px; margin-top: 12px; padding-top: 10px; font-weight: bold; }QGroupBox::title { subcontrol-origin: margin; subcontrol-position: top left; padding: 0 6px; color: %5; }QLineEdit, QTextEdit, QComboBox, QSpinBox, QDoubleSpinBox { background-color: %6; color: %2; border: 1px solid %3; border-radius: %4px; padding: 5px 8px; selection-background-color: %5; selection-color: #FFFFFF; }QLineEdit:focus, QTextEdit:focus, QComboBox:focus, QSpinBox:focus, QDoubleSpinBox:focus { border: 2px solid %5; }QLineEdit[lockedField="true"], QLineEdit[lockedField="true"]:disabled, QTextEdit[lockedField="true"], QTextEdit[lockedField="true"]:disabled, QComboBox[lockedField="true"], QComboBox[lockedField="true"]:disabled, QSpinBox[lockedField="true"], QSpinBox[lockedField="true"]:disabled, QDoubleSpinBox[lockedField="true"], QDoubleSpinBox[lockedField="true"]:disabled, QCheckBox[lockedField="true"], QCheckBox[lockedField="true"]:disabled { color: #7A869A; }QComboBox::drop-down { border: none; width: 22px; }QComboBox QAbstractItemView { background-color: %6; color: %2; border: 1px solid %3; selection-background-color: %5; selection-color: #FFFFFF; }QPushButton { background-color: %7; color: %2; border: 1px solid %3; border-radius: %4px; padding: 6px 12px; font-weight: 600; }QPushButton:hover { background-color: %8; border-color: %5; }QPushButton:pressed { background-color: %5; color: #FFFFFF; }QPushButton:disabled { opacity: 0.45; }QPushButton#primaryBtn { background-color: %5; color: #FFFFFF; border: 1px solid %5; }QPushButton#primaryBtn:hover { background-color: %9; border-color: %9; }QPushButton#dangerBtn { border: 1px solid #DC2626; color: #DC2626; }QPushButton#dangerBtn:hover { background-color: #DC2626; color: #FFFFFF; }QTableWidget { background-color: %6; alternate-background-color: %10; color: %2; gridline-color: %3; border: 1px solid %3; border-radius: %4px; selection-background-color: %5; selection-color: #FFFFFF; }QHeaderView::section { background-color: %7; color: %2; padding: 6px; border: none; border-bottom: 2px solid %5; border-right: 1px solid %3; font-weight: bold; }QCheckBox { spacing: 7px; color: %2; }QCheckBox::indicator { width: 17px; height: 17px; border: 1px solid %3; border-radius: 4px; background-color: %6; }QCheckBox::indicator:hover { border: 1px solid %5; }QCheckBox::indicator:checked { background-color: %5; border-color: %5; image: url("%12"); }QLabel#statsBadge { background-color: %6; border: 1px solid %5; border-radius: %4px; padding: 5px 10px; font-weight: bold; color: %5; }QLabel#archiveNotice { background-color: %6; border: 1px solid %3; border-radius: %4px; padding: 5px 10px; font-weight: 600; }QLabel#totalHighlight { font-size: %11pt; font-weight: bold; color: %5; }QFrame#themeBar { background-color: %6; border: 1px solid %3; border-radius: %4px; }QFrame#lockedOverlay { background-color: rgba(120, 130, 145, 115); border: 1px dashed %3; border-radius: %4px; })").arg(c.windowBg)
     .arg(c.text)
     .arg(c.border)
     .arg(radius)

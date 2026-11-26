@@ -41,7 +41,7 @@ void AccountingLedger::loadFromDisk() {
         if (!val.isObject()) {
             continue;
         }
-        staffEmployees.push_back(StaffEmployee::fromJson(val.toObject()));
+        staffEmployees.emplace_back(StaffEmployee::fromJson(val.toObject()));
     }
 }
 
@@ -66,9 +66,9 @@ void AccountingLedger::syncStaffWithStorage(const Storage& storage) {
         });
         if (existing != staffEmployees.end()) {
             existing->setName(master.getName());
-            synced.push_back(*existing);
+            synced.emplace_back(*existing);
         } else {
-            synced.push_back(StaffEmployee(master.getId(), master.getName(), master.getSpecialization(), 0.0, 1.0));
+            synced.emplace_back(master.getId(), master.getName(), master.getSpecialization(), 0.0, 1.0);
         }
     }
     staffEmployees = std::move(synced);
@@ -138,16 +138,14 @@ void AccountingLedger::recalculateMasters(const Storage& storage, std::vector<Ma
             }); found != staffEmployees.end()) {
             rate = found->getRateMultiplier();
         }
-        outMasters.push_back(
-            MasterEmployee(
-                master.getId(),
-                master.getId(),
-                master.getName(),
-                master.getSpecialization(),
-                masterSharedMinBase,
-                piecework,
-                rate
-            )
+        outMasters.emplace_back(
+            master.getId(),
+            master.getId(),
+            master.getName(),
+            master.getSpecialization(),
+            masterSharedMinBase,
+            piecework,
+            rate
         );
     }
 }
@@ -158,7 +156,7 @@ std::vector<std::unique_ptr<Employee>> AccountingLedger::buildPayrollList(const 
     recalculateMasters(storage, mastersCalc);
 
     for (const auto& me : mastersCalc) {
-        result.push_back(std::make_unique<MasterEmployee>(me));
+        result.emplace_back(std::make_unique<MasterEmployee>(me));
     }
     return result;
 }

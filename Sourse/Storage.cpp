@@ -155,6 +155,28 @@ void Storage::updateMasterSpecialization(unsigned int masterId, const QString& n
     persistence.saveMasters(masters);
 }
 
+void Storage::updateMasterDetails(unsigned int masterId, const QString& name, const QString& phone, const QString& specialization) {
+    Master* master = masters.findById(masterId);
+    if (!master) {
+        throw EntityNotFoundException("Master not found");
+    }
+    InputValidator::validateStringNotEmpty(name, "Worker Name");
+    InputValidator::validatePhone(phone);
+    InputValidator::validateStringNotEmpty(specialization, "Profile");
+
+    QString normalizedPhone = InputValidator::normalizePhone(phone);
+    for (const auto& existing : masters) {
+        if (existing.getId() != masterId && existing.getPhone() == normalizedPhone) {
+            throw DuplicateEntityException("Worker with this phone number already exists");
+        }
+    }
+
+    master->setName(InputValidator::sanitizeString(name));
+    master->setPhone(normalizedPhone);
+    master->setSpecialization(InputValidator::sanitizeString(specialization));
+    persistence.saveMasters(masters);
+}
+
 void Storage::removeMaster(unsigned int masterId) {
     const Master* master = masters.findById(masterId);
     if (!master) {

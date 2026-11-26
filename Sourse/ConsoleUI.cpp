@@ -100,32 +100,32 @@ void ConsoleUI::printItems(const std::string& header, const std::string& emptyMe
 }
 
 void ConsoleUI::registerClientInteractive() {
-    QString name = readQString("Client Full Name: ");
-    QString phone = readQString("Client Phone (+375XXXXXXXXX): ");
-    QString note = readQString("Note: ");
+    const auto name = readQString("Client Full Name: ");
+    const auto phone = readQString("Client Phone (+375XXXXXXXXX): ");
+    const auto note = readQString("Note: ");
     const Client& added = storage.addClient(name, phone, note);
     std::cout << "[OK] Registered client ID #" << added.getId() << "\n";
 }
 
 std::unique_ptr<Device> ConsoleUI::buildDeviceInteractive() const {
     std::cout << "Device Category: 1 = Computer, 2 = Household, 3 = Electronics\n";
-    int categoryChoice = readInt("Select category: ", 1, 3);
-    QString model = readQString("Device Model: ");
-    QString serial = readQString("Serial / IMEI: ");
-    QString fault = readQString("Fault Description: ");
+    const int categoryChoice = readInt("Select category: ", 1, 3);
+    const auto model = readQString("Device Model: ");
+    const auto serial = readQString("Serial / IMEI: ");
+    const auto fault = readQString("Fault Description: ");
 
     if (categoryChoice == 1) {
-        QString os = readQString("OS Type: ");
-        bool hasCharger = readInt("Charger included? (1=Yes, 0=No): ", 0, 1) == 1;
+        const auto os = readQString("OS Type: ");
+        const bool hasCharger = readInt("Charger included? (1=Yes, 0=No): ", 0, 1) == 1;
         return std::make_unique<ComputerDevice>(model, serial, fault, os, hasCharger);
     }
     if (categoryChoice == 2) {
-        int watts = readInt("Power (Watts): ", 1, 10000);
-        bool isPortable = readInt("Is portable? (1=Yes, 0=No): ", 0, 1) == 1;
+        const int watts = readInt("Power (Watts): ", 1, 10000);
+        const bool isPortable = readInt("Is portable? (1=Yes, 0=No): ", 0, 1) == 1;
         return std::make_unique<HouseholdDevice>(model, serial, fault, watts, isPortable);
     }
-    QString boardRev = readQString("Board Revision: ");
-    bool microSoldering = readInt("Requires micro-soldering? (1=Yes, 0=No): ", 0, 1) == 1;
+    const auto boardRev = readQString("Board Revision: ");
+    const bool microSoldering = readInt("Requires micro-soldering? (1=Yes, 0=No): ", 0, 1) == 1;
     return std::make_unique<ElectronicDevice>(model, serial, fault, boardRev, microSoldering);
 }
 
@@ -135,8 +135,8 @@ void ConsoleUI::handleListOrders() const {
 
 void ConsoleUI::handleFilterOrders() const {
     std::cout << "Status filter (-1 = All, 0 = Accepted, 1 = Diagnostics, 2 = WaitingParts, 3 = Completed, 4 = Issued/Archived)\n";
-    int status = readInt("Select status: ", -1, 4);
-    QString query = readQString("Search query (model, serial, client, phone or empty): ");
+    const int status = readInt("Select status: ", -1, 4);
+    const auto query = readQString("Search query (model, serial, client, phone or empty): ");
     printItems("MATCHING ORDERS", "No matching orders found.", WorkshopSearchService::filterOrders(storage, status, query));
 }
 
@@ -154,54 +154,54 @@ void ConsoleUI::handleCreateOrder() {
     }
 
     printItems("AVAILABLE CLIENTS", "No clients available.", storage.getClients());
-    unsigned int clientId = readId("Enter Client ID: ");
+    const unsigned int clientId = readId("Enter Client ID: ");
 
     std::cout << "Available Workers (0 = Auto-assign least loaded):\n";
     for (const auto& m : storage.getMasters()) {
         std::cout << std::format("  [{}] Spec: {} | Active: {}\n", m.getId(), m.getSpecialization().toStdString(), m.getActiveOrdersCount());
     }
-    unsigned int masterId = readId("Enter Worker ID (0-1000): ", 0, 1000);
+    const unsigned int masterId = readId("Enter Worker ID (0-1000): ", 0, 1000);
 
-    std::unique_ptr<Device> device = buildDeviceInteractive();
-    double labor = readDouble("Base Labor Cost (BYN): ", 0.0, 10000.0);
+    auto device = buildDeviceInteractive();
+    const double labor = readDouble("Base Labor Cost (BYN): ", 0.0, 10000.0);
 
     const Order& created = storage.addOrder(clientId, masterId, std::move(device), labor);
     std::cout << "[OK] Created " << created << "\n";
 }
 
 void ConsoleUI::handleUpdateOrderStatus() {
-    unsigned int orderId = readId("Enter Order ID: ");
+    const unsigned int orderId = readId("Enter Order ID: ");
     std::cout << "Status: 0 = Accepted, 1 = Diagnostics, 2 = WaitingParts, 3 = Completed, 4 = Issued (Moves to Archive)\n";
-    int statusCode = readInt("Select status: ", 0, 4);
+    const int statusCode = readInt("Select status: ", 0, 4);
     storage.changeOrderStatus(orderId, static_cast<OrderStatus>(statusCode));
     std::cout << "[OK] Order status updated.\n";
 }
 
 void ConsoleUI::handleReservePart() {
-    unsigned int orderId = readId("Enter Order ID: ");
-    auto available = WorkshopSearchService::findAvailableParts(storage);
+    const unsigned int orderId = readId("Enter Order ID: ");
+    const auto available = WorkshopSearchService::findAvailableParts(storage);
     if (available.empty()) {
         std::cout << "No available spare parts in warehouse.\n";
         return;
     }
     printItems("AVAILABLE SPARE PARTS", "No spare parts available.", available);
-    unsigned int partId = readId("Enter Part ID: ");
-    int count = readInt("Quantity to reserve: ", 1, 200);
+    const unsigned int partId = readId("Enter Part ID: ");
+    const int count = readInt("Quantity to reserve: ", 1, 200);
     storage.reservePartForOrder(orderId, partId, count);
     std::cout << "[OK] Spare part reserved for order.\n";
 }
 
 void ConsoleUI::handleReturnPart() {
-    unsigned int orderId = readId("Enter Order ID: ");
-    unsigned int partId = readId("Enter Part ID to return: ");
-    int count = readInt("Quantity to return: ", 1, 200);
+    const unsigned int orderId = readId("Enter Order ID: ");
+    const unsigned int partId = readId("Enter Part ID to return: ");
+    const int count = readInt("Quantity to return: ", 1, 200);
     storage.returnPartFromOrder(orderId, partId, count);
     std::cout << "[OK] Spare part returned to stock.\n";
 }
 
 void ConsoleUI::handleAddDiagnosticNote() {
-    unsigned int orderId = readId("Enter Order ID: ");
-    QString note = readQString("Diagnostic Note: ");
+    const unsigned int orderId = readId("Enter Order ID: ");
+    const auto note = readQString("Diagnostic Note: ");
     storage.appendOrderNote(orderId, note);
     std::cout << "[OK] Diagnostic note added.\n";
 }
@@ -209,8 +209,8 @@ void ConsoleUI::handleAddDiagnosticNote() {
 void ConsoleUI::handleManageClients() {
     std::cout << "1. List / Search Clients\n2. Add Client\n";
     if (readInt("Select action: ", 1, 2) == 1) {
-        QString query = readQString("Search query (name or phone, empty for all): ");
-        auto found = WorkshopSearchService::searchClients(storage, query);
+        const auto query = readQString("Search query (name or phone, empty for all): ");
+        const auto found = WorkshopSearchService::searchClients(storage, query);
         std::cout << std::format("Found {} client(s).\n", found.size());
     } else {
         registerClientInteractive();
@@ -219,28 +219,28 @@ void ConsoleUI::handleManageClients() {
 
 void ConsoleUI::handleManageWarehouse() {
     std::cout << "1. List / Search Parts\n2. Add Part\n3. Restock Existing Part\n";
-    int choice = readInt("Select action: ", 1, 3);
+    const int choice = readInt("Select action: ", 1, 3);
     if (choice == 1) {
-        QString query = readQString("Search query (SKU or name, empty for all): ");
+        const auto query = readQString("Search query (SKU or name, empty for all): ");
         printItems("WAREHOUSE PARTS", "No matching parts found.", WorkshopSearchService::searchParts(storage, query));
     } else if (choice == 2) {
-        QString sku = readQString("SKU: ");
-        QString name = readQString("Part Name: ");
-        int qty = readInt("Initial Quantity: ", 0, 10000);
-        double price = readDouble("Unit Price (BYN): ", 0.01, 5000.0);
+        const auto sku = readQString("SKU: ");
+        const auto name = readQString("Part Name: ");
+        const int qty = readInt("Initial Quantity: ", 0, 10000);
+        const double price = readDouble("Unit Price (BYN): ", 0.01, 5000.0);
         const SparePart& added = storage.addPart(sku, name, qty, price);
         std::cout << "[OK] Added " << added << "\n";
     } else {
-        unsigned int partId = readId("Enter Part ID: ");
-        int count = readInt("Quantity to add: ", 1, 10000);
+        const unsigned int partId = readId("Enter Part ID: ");
+        const int count = readInt("Quantity to add: ", 1, 10000);
         storage.restockPart(partId, count);
         std::cout << "[OK] Stock updated.\n";
     }
 }
 
 void ConsoleUI::handleShowReport() const {
-    AccountingLedger ledger(storage);
-    AccountingSummary sum = ledger.calculateSummary(storage);
+    const AccountingLedger ledger(storage);
+    const AccountingSummary sum = ledger.calculateSummary(storage);
     std::cout << std::format(
         "\n--- ACCOUNTING & PAYROLL SUMMARY ---\n"
         "Total Orders:     {} (Archived: {})\n"
@@ -264,10 +264,10 @@ void ConsoleUI::handleShowReport() const {
 void ConsoleUI::handleBackupAndRestore() {
     std::cout << "1. Create Backup\n2. Restore from Backup Folder\n";
     if (readInt("Select action: ", 1, 2) == 1) {
-        QString path = storage.backupDatabase();
+        const auto path = storage.backupDatabase();
         std::cout << "[OK] Backup saved to: " << path.toStdString() << "\n";
     } else {
-        QString folder = readQString("Enter backup folder path: ");
+        const auto folder = readQString("Enter backup folder path: ");
         storage.restoreDatabase(folder);
         std::cout << "[OK] Database restored successfully.\n";
     }
@@ -275,7 +275,7 @@ void ConsoleUI::handleBackupAndRestore() {
 
 void ConsoleUI::handleManageMasters() {
     std::cout << "1. List Workers\n2. Add Worker\n3. Remove Worker\n";
-    int choice = readInt("Select action: ", 1, 3);
+    const int choice = readInt("Select action: ", 1, 3);
     if (choice == 1) {
         for (const auto& m : storage.getMasters()) {
             std::cout << std::format("  ID #{} | Phone: {} | Spec: {} | Active: {}\n",
@@ -283,25 +283,25 @@ void ConsoleUI::handleManageMasters() {
         }
     } else if (choice == 2) {
         constexpr std::array<const char*, 3> specs = {"Computer", "Household", "Electronics"};
-        QString name = readQString("Full Name: ");
-        QString phone = readQString("Phone (+375XXXXXXXXX): ");
+        const auto name = readQString("Full Name: ");
+        const auto phone = readQString("Phone (+375XXXXXXXXX): ");
         std::cout << "Specialization: 1 = Computer, 2 = Household, 3 = Electronics\n";
-        int specIdx = readInt("Select specialization: ", 1, 3) - 1;
+        const int specIdx = readInt("Select specialization: ", 1, 3) - 1;
         const Master& added = storage.addMaster(name, phone, specs[static_cast<std::size_t>(specIdx)]);
         std::cout << "[OK] Added Worker ID #" << added.getId() << "\n";
     } else {
-        unsigned int masterId = readId("Enter Worker ID to remove: ");
+        const unsigned int masterId = readId("Enter Worker ID to remove: ");
         storage.removeMaster(masterId);
         std::cout << "[OK] Worker removed.\n";
     }
 }
 
 void ConsoleUI::handleExportAcceptanceReceipt() const {
-    unsigned int orderId = readId("Enter Order ID: ");
-    QString html = WorkshopReportService::generateAcceptanceReceiptHtml(storage, orderId);
-    std::string fileName = std::format("Order_{}_Receipt.html", orderId);
+    const unsigned int orderId = readId("Enter Order ID: ");
+    const auto html = WorkshopReportService::generateAcceptanceReceiptHtml(storage, orderId);
+    const std::string fileName = std::format("Order_{}_Receipt.html", orderId);
     if (std::ofstream out(fileName, std::ios::binary); out.is_open()) {
-        std::string utf8 = html.toStdString();
+        const std::string utf8 = html.toStdString();
         out.write(utf8.data(), static_cast<std::streamsize>(utf8.size()));
         std::cout << "[OK] Acceptance receipt exported to: " << fileName << "\n";
     } else {
@@ -317,30 +317,23 @@ void ConsoleUI::run() {
     bool running = true;
     while (running) {
         printMainMenu();
-        int choice = readInt("Choose option: ", 0, 14);
-        try {
-            switch (choice) {
-                case 1: handleListOrders(); break;
-                case 2: handleFilterOrders(); break;
-                case 3: handleCreateOrder(); break;
-                case 4: handleUpdateOrderStatus(); break;
-                case 5: handleReservePart(); break;
-                case 6: handleReturnPart(); break;
-                case 7: handleAddDiagnosticNote(); break;
-                case 8: handleManageClients(); break;
-                case 9: handleManageWarehouse(); break;
-                case 10: handleShowReport(); break;
-                case 11: handleBackupAndRestore(); break;
-                case 12: handleManageMasters(); break;
-                case 13: handleExportAcceptanceReceipt(); break;
-                case 14: handleListArchivedOrders(); break;
-                case 0: running = false; break;
-                default: break;
-            }
-        } catch (const AppException& ex) {
-            std::cout << std::format("[Error #{}] {}\n", ex.getCode(), ex.what());
-        } catch (const std::out_of_range& ex) {
-            std::cout << std::format("[Range Error] {}\n", ex.what());
+        switch (readInt("Choose option: ", 0, 14)) {
+            case 1: handleListOrders(); break;
+            case 2: handleFilterOrders(); break;
+            case 3: handleCreateOrder(); break;
+            case 4: handleUpdateOrderStatus(); break;
+            case 5: handleReservePart(); break;
+            case 6: handleReturnPart(); break;
+            case 7: handleAddDiagnosticNote(); break;
+            case 8: handleManageClients(); break;
+            case 9: handleManageWarehouse(); break;
+            case 10: handleShowReport(); break;
+            case 11: handleBackupAndRestore(); break;
+            case 12: handleManageMasters(); break;
+            case 13: handleExportAcceptanceReceipt(); break;
+            case 14: handleListArchivedOrders(); break;
+            case 0: running = false; break;
+            default: break;
         }
     }
 }

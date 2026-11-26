@@ -54,6 +54,7 @@ public:
     Client& addClient(const QString& name, const QString& phone, const QString& note = "");
     Master& addMaster(const QString& name, const QString& phone, const QString& specialization);
     void updateMasterSpecialization(unsigned int masterId, const QString& newSpecialization);
+    void updateMasterDetails(unsigned int masterId, const QString& name, const QString& phone, const QString& specialization);
     void removeMaster(unsigned int masterId);
 
     SparePart& addPart(const QString& sku, const QString& name, int quantity, double price);

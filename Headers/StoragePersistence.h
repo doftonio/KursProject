@@ -49,15 +49,15 @@ public:
     explicit StoragePersistence(const QString& baseDir = "data");
 
     void ensureStorageReady() const;
-    void loadAll(WorkshopCollections collections, IdCounters& counters) const;
-    void saveAll(ConstWorkshopCollections collections, const IdCounters& counters) const;
+    void loadAll(const WorkshopCollections& collections, IdCounters& counters) const;
+    void saveAll(const ConstWorkshopCollections& collections, const IdCounters& counters) const;
     void saveAppState(const IdCounters& counters) const;
     void saveClients(const Repository<Client>& clients) const;
     void saveMasters(const Repository<Master>& masters) const;
     void saveParts(const Repository<SparePart>& parts) const;
     void saveOrders(const Repository<Order>& orders) const;
-    QString backup(ConstWorkshopCollections collections, const IdCounters& counters, const QString& backupRoot = "backups") const;
-    void restore(WorkshopCollections collections, IdCounters& counters, const QString& backupFolder) const;
+    QString backup(const ConstWorkshopCollections& collections, const IdCounters& counters, const QString& backupRoot = "backups") const;
+    void restore(const WorkshopCollections& collections, IdCounters& counters, const QString& backupFolder) const;
 };
 
 #endif
