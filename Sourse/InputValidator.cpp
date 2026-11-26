@@ -16,6 +16,11 @@ QString InputValidator::normalizePhone(const QString& rawPhone) {
     return cleaned;
 }
 
+QString InputValidator::normalizeSerial(const QString& rawSerial) {
+    QString trimmed = sanitizeString(rawSerial);
+    return trimmed.isEmpty() ? QString("Не указан") : trimmed;
+}
+
 void InputValidator::validatePhone(const QString& phone) {
     QString normalized = normalizePhone(phone);
     QRegularExpression regex(phonePattern);
@@ -43,8 +48,11 @@ void InputValidator::validateStringNotEmpty(const QString& text, const QString& 
 
 void InputValidator::validateSerial(const QString& serial) {
     QString trimmed = serial.trimmed();
+    if (trimmed.isEmpty() || trimmed == "Не указан") {
+        return;
+    }
     if (trimmed.length() < 3 || trimmed.length() > 64) {
-        throw InvalidInputDataException("Serial number must be between 3 and 64 characters");
+        throw InvalidInputDataException("Serial number must be between 3 and 64 characters when provided");
     }
 }
 

@@ -13,10 +13,11 @@ void JsonFileHelper::ensureDirectory(const QString& dirPath) {
 }
 
 void JsonFileHelper::writeAtomic(const QString& filePath, const QByteArray& content) {
-    if (QSaveFile saveFile(filePath); saveFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        if (saveFile.write(content) != -1 && saveFile.commit()) {
-            return;
-        }
+    if (QSaveFile saveFile(filePath);
+        saveFile.open(QIODevice::WriteOnly | QIODevice::Text) &&
+        saveFile.write(content) != -1 &&
+        saveFile.commit()) {
+        return;
     }
 
     QFile directFile(filePath);

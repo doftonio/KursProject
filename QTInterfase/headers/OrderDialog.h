@@ -11,6 +11,10 @@
 #include <QTableWidget>
 #include <QLabel>
 #include <QCheckBox>
+#include <QPushButton>
+#include <QGroupBox>
+#include <QFrame>
+#include <QEvent>
 
 class OrderDialog : public QDialog {
     Q_OBJECT
@@ -31,21 +35,34 @@ private:
     QComboBox* statusCombo;
     QDoubleSpinBox* laborSpin;
 
+    QGroupBox* notesGroup;
+    QFrame* notesOverlay = nullptr;
     QTextEdit* notesHistoryEdit;
     QLineEdit* newNoteEdit;
 
+    QGroupBox* partsGroup;
+    QFrame* partsOverlay = nullptr;
     QComboBox* availablePartsCombo;
     QSpinBox* partQtySpin;
     QTableWidget* usedPartsTable;
     QLabel* totalCostLabel;
+    QPushButton* saveBtn;
 
     void buildUi();
+    void setupLockedOverlays();
+    QFrame* createSectionOverlay(QWidget* targetGroup);
+    static void markFieldLocked(QWidget* widget);
     void populateCombos();
     void loadExistingOrder();
+    void applyReadOnlyArchiveMode();
     void refreshUsedPartsTable();
     void refreshTotalLabel();
 
+protected:
+    bool eventFilter(QObject* watched, QEvent* event) override;
+
 private slots:
+    void onClientComboActivated(int index);
     void onCategoryChanged(int index);
     void onAddNote();
     void onReservePart();

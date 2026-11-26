@@ -15,7 +15,7 @@ private:
     Storage& storage;
 
     QLineEdit* searchEdit;
-    QTableWidget* mastersTable;
+    QTableWidget* workersTable;
 
     QLineEdit* nameEdit;
     QLineEdit* phoneEdit;
@@ -29,15 +29,15 @@ private:
 
     void buildUi();
     void refreshTable();
-    unsigned int getSelectedMasterId() const;
+    unsigned int getSelectedWorkerId() const;
     static QString formatSpecRu(const QString& spec);
 
 private slots:
     void onSearchChanged(const QString& text);
     void onSelectionChanged();
-    void onAddMaster();
+    void onAddWorker();
     void onUpdateSpecialization();
-    void onRemoveMaster();
+    void onRemoveWorker();
 
 public:
     explicit MasterDialog(Storage& storageRef, QWidget* parent = nullptr);

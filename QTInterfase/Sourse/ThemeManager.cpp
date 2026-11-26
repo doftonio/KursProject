@@ -1,6 +1,7 @@
 #include "../headers/ThemeManager.h"
 #include "../../Headers/EnumUtils.h"
 #include <QApplication>
+#include <QWidget>
 #include <QSettings>
 #include <QStyleFactory>
 #include <QPalette>
@@ -14,32 +15,31 @@
 ThemeManager::ThemeManager(const QString& configPath)
     : settingsPath(configPath) {}
 
-QString ThemeManager::ensureCheckmarkIcon() const {
+void ThemeManager::initCheckmarkIcon() {
     QFileInfo info(settingsPath);
     if (QDir dir; !dir.exists(info.path())) {
         dir.mkpath(info.path());
     }
     QString iconPath = info.absolutePath() + "/checkmark.png";
-    QPixmap pixmap(16, 16);
-    pixmap.fill(Qt::transparent);
+    if (!QFileInfo::exists(iconPath)) {
+        QPixmap pixmap(16, 16);
+        pixmap.fill(Qt::transparent);
 
-    QPainter painter(&pixmap);
-    painter.setRenderHint(QPainter::Antialiasing, true);
-    QPen pen(Qt::white, 2.3, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin);
-    painter.setPen(pen);
-    painter.drawLine(QPointF(3.5, 8.5), QPointF(6.8, 11.8));
-    painter.drawLine(QPointF(6.8, 11.8), QPointF(12.8, 4.5));
-    painter.end();
+        QPainter painter(&pixmap);
+        painter.setRenderHint(QPainter::Antialiasing, true);
+        QPen pen(Qt::white, 2.3, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin);
+        painter.setPen(pen);
+        painter.drawLine(QPointF(3.5, 8.5), QPointF(6.8, 11.8));
+        painter.drawLine(QPointF(6.8, 11.8), QPointF(12.8, 4.5));
+        painter.end();
 
-    pixmap.save(iconPath, "PNG");
-    return QFileInfo(iconPath).absoluteFilePath();
+        pixmap.save(iconPath, "PNG");
+    }
+    cachedCheckmarkUrl = QFileInfo(iconPath).absoluteFilePath();
 }
 
 void ThemeManager::loadAndApply() {
-    QFileInfo info(settingsPath);
-    if (QDir dir; !dir.exists(info.path())) {
-        dir.mkpath(info.path());
-    }
+    initCheckmarkIcon();
 
     QSettings settings(settingsPath, QSettings::IniFormat);
     mode = static_cast<ThemeMode>(settings.value("mode", 0).toInt());
@@ -48,7 +48,7 @@ void ThemeManager::loadAndApply() {
     roundedCorners = settings.value("roundedCorners", true).toBool();
 
     QApplication::setStyle(QStyleFactory::create("Fusion"));
-    apply();
+    apply(true);
 }
 
 void ThemeManager::saveSettings() const {
@@ -152,41 +152,52 @@ void ThemeManager::applyPalette() const {
     QApplication::setPalette(pal);
 }
 
+void ThemeManager::applyFont() const {
+    QFont font("Segoe UI", resolveFontPoints());
+    QApplication::setFont(font);
+}
+
 QString ThemeManager::buildStyleSheet() const {
-    QString checkUrl = ensureCheckmarkIcon();
     ThemePaletteColors c = resolveColors();
     int fontPt = resolveFontPoints();
     int radius = roundedCorners ? 6 : 2;
 
     return QString(
-        "QWidget { background-color: %1; color: %2; font-family: 'Segoe UI', Arial, sans-serif; font-size: %3pt; }"
-        "QMainWindow, QDialog { background-color: %1; }"
-        "QGroupBox { border: 1px solid %4; border-radius: %5px; margin-top: 12px; padding-top: 10px; font-weight: bold; }"
-        "QGroupBox::title { subcontrol-origin: margin; subcontrol-position: top left; padding: 0 6px; color: %6; }"
-        "QLineEdit, QTextEdit, QComboBox, QSpinBox, QDoubleSpinBox { background-color: %7; color: %2; border: 1px solid %4; border-radius: %5px; padding: 5px 8px; selection-background-color: %6; selection-color: #FFFFFF; }"
-        "QLineEdit:focus, QTextEdit:focus, QComboBox:focus, QSpinBox:focus, QDoubleSpinBox:focus { border: 2px solid %6; }"
+        "QMainWindow, QDialog { background-color: %1; color: %2; }"
+        "QTabWidget::pane { border: 1px solid %3; border-radius: %4px; background-color: %1; top: -1px; }"
+        "QTabBar::tab { background-color: %7; color: %2; border: 1px solid %3; border-bottom: none; border-top-left-radius: %4px; border-top-right-radius: %4px; padding: 7px 16px; margin-right: 3px; font-weight: 600; }"
+        "QTabBar::tab:selected { background-color: %5; color: #FFFFFF; border-color: %5; }"
+        "QTabBar::tab:hover:!selected { background-color: %8; }"
+        "QGroupBox { border: 1px solid %3; border-radius: %4px; margin-top: 12px; padding-top: 10px; font-weight: bold; }"
+        "QGroupBox::title { subcontrol-origin: margin; subcontrol-position: top left; padding: 0 6px; color: %5; }"
+        "QLineEdit, QTextEdit, QComboBox, QSpinBox, QDoubleSpinBox { background-color: %6; color: %2; border: 1px solid %3; border-radius: %4px; padding: 5px 8px; selection-background-color: %5; selection-color: #FFFFFF; }"
+        "QLineEdit:focus, QTextEdit:focus, QComboBox:focus, QSpinBox:focus, QDoubleSpinBox:focus { border: 2px solid %5; }"
+        "QLineEdit[lockedField=\"true\"], QLineEdit[lockedField=\"true\"]:disabled, QTextEdit[lockedField=\"true\"], QTextEdit[lockedField=\"true\"]:disabled, QComboBox[lockedField=\"true\"], QComboBox[lockedField=\"true\"]:disabled, QSpinBox[lockedField=\"true\"], QSpinBox[lockedField=\"true\"]:disabled, QDoubleSpinBox[lockedField=\"true\"], QDoubleSpinBox[lockedField=\"true\"]:disabled, QCheckBox[lockedField=\"true\"], QCheckBox[lockedField=\"true\"]:disabled { color: #7A869A; }"
         "QComboBox::drop-down { border: none; width: 22px; }"
-        "QComboBox QAbstractItemView { background-color: %7; color: %2; border: 1px solid %4; selection-background-color: %6; selection-color: #FFFFFF; }"
-        "QPushButton { background-color: %8; color: %2; border: 1px solid %4; border-radius: %5px; padding: 6px 12px; font-weight: 600; }"
-        "QPushButton:hover { background-color: %9; border-color: %6; }"
-        "QPushButton:pressed { background-color: %6; color: #FFFFFF; }"
-        "QPushButton#primaryBtn { background-color: %6; color: #FFFFFF; border: 1px solid %6; }"
-        "QPushButton#primaryBtn:hover { background-color: %10; border-color: %10; }"
+        "QComboBox QAbstractItemView { background-color: %6; color: %2; border: 1px solid %3; selection-background-color: %5; selection-color: #FFFFFF; }"
+        "QPushButton { background-color: %7; color: %2; border: 1px solid %3; border-radius: %4px; padding: 6px 12px; font-weight: 600; }"
+        "QPushButton:hover { background-color: %8; border-color: %5; }"
+        "QPushButton:pressed { background-color: %5; color: #FFFFFF; }"
+        "QPushButton:disabled { opacity: 0.45; }"
+        "QPushButton#primaryBtn { background-color: %5; color: #FFFFFF; border: 1px solid %5; }"
+        "QPushButton#primaryBtn:hover { background-color: %9; border-color: %9; }"
         "QPushButton#dangerBtn { border: 1px solid #DC2626; color: #DC2626; }"
         "QPushButton#dangerBtn:hover { background-color: #DC2626; color: #FFFFFF; }"
-        "QTableWidget { background-color: %7; alternate-background-color: %11; color: %2; gridline-color: %4; border: 1px solid %4; border-radius: %5px; selection-background-color: %6; selection-color: #FFFFFF; }"
-        "QHeaderView::section { background-color: %8; color: %2; padding: 6px; border: none; border-bottom: 2px solid %6; border-right: 1px solid %4; font-weight: bold; }"
+        "QTableWidget { background-color: %6; alternate-background-color: %10; color: %2; gridline-color: %3; border: 1px solid %3; border-radius: %4px; selection-background-color: %5; selection-color: #FFFFFF; }"
+        "QHeaderView::section { background-color: %7; color: %2; padding: 6px; border: none; border-bottom: 2px solid %5; border-right: 1px solid %3; font-weight: bold; }"
         "QCheckBox { spacing: 7px; color: %2; }"
-        "QCheckBox::indicator { width: 17px; height: 17px; border: 1px solid %4; border-radius: 4px; background-color: %7; }"
-        "QCheckBox::indicator:hover { border: 1px solid %6; }"
-        "QCheckBox::indicator:checked { background-color: %6; border-color: %6; image: url(\"%13\"); }"
-        "QLabel#statsBadge { background-color: %7; border: 1px solid %6; border-radius: %5px; padding: 5px 10px; font-weight: bold; color: %6; }"
-        "QLabel#totalHighlight { font-size: %12pt; font-weight: bold; color: %6; }"
-        "QFrame#themeBar { background-color: %7; border: 1px solid %4; border-radius: %5px; }"
+        "QCheckBox::indicator { width: 17px; height: 17px; border: 1px solid %3; border-radius: 4px; background-color: %6; }"
+        "QCheckBox::indicator:hover { border: 1px solid %5; }"
+        "QCheckBox::indicator:checked { background-color: %5; border-color: %5; image: url(\"%12\"); }"
+        "QLabel#statsBadge { background-color: %6; border: 1px solid %5; border-radius: %4px; padding: 5px 10px; font-weight: bold; color: %5; }"
+        "QLabel#archiveNotice { background-color: %6; border: 1px solid %3; border-radius: %4px; padding: 5px 10px; font-weight: 600; }"
+        "QLabel#totalHighlight { font-size: %11pt; font-weight: bold; color: %5; }"
+        "QFrame#themeBar { background-color: %6; border: 1px solid %3; border-radius: %4px; }"
+        "QFrame#lockedOverlay { background-color: rgba(120, 130, 145, 115); border: 1px dashed %3; border-radius: %4px; }"
+        
     )
     .arg(c.windowBg)
     .arg(c.text)
-    .arg(fontPt)
     .arg(c.border)
     .arg(radius)
     .arg(c.accent)
@@ -196,19 +207,30 @@ QString ThemeManager::buildStyleSheet() const {
     .arg(c.accentHover)
     .arg(c.altBg)
     .arg(fontPt + 2)
-    .arg(checkUrl);
+    .arg(cachedCheckmarkUrl);
 }
 
-void ThemeManager::apply() const {
+void ThemeManager::apply(bool updateFont) const {
     auto* app = qobject_cast<QApplication*>(QApplication::instance());
     if (!app) {
         return;
     }
-    QFont font = QApplication::font();
-    font.setPointSize(resolveFontPoints());
-    QApplication::setFont(font);
+
+    const auto topWidgets = QApplication::topLevelWidgets();
+    for (QWidget* w : topWidgets) {
+        w->setUpdatesEnabled(false);
+    }
+
+    if (updateFont) {
+        applyFont();
+    }
     applyPalette();
     app->setStyleSheet(buildStyleSheet());
+
+    for (QWidget* w : topWidgets) {
+        w->setUpdatesEnabled(true);
+        w->update();
+    }
 }
 
 ThemeMode ThemeManager::getMode() const {
@@ -228,32 +250,44 @@ bool ThemeManager::isRoundedCorners() const {
 }
 
 void ThemeManager::setMode(ThemeMode value) {
+    if (mode == value) {
+        return;
+    }
     mode = value;
     saveSettings();
-    apply();
+    apply(false);
 }
 
 void ThemeManager::toggleMode() {
     using enum ThemeMode;
     mode = (mode == Day) ? Night : Day;
     saveSettings();
-    apply();
+    apply(false);
 }
 
 void ThemeManager::setPalette(ColorPalette value) {
+    if (palette == value) {
+        return;
+    }
     palette = value;
     saveSettings();
-    apply();
+    apply(false);
 }
 
 void ThemeManager::setFontScale(FontScale value) {
+    if (fontScale == value) {
+        return;
+    }
     fontScale = value;
     saveSettings();
-    apply();
+    apply(true);
 }
 
 void ThemeManager::setRoundedCorners(bool value) {
+    if (roundedCorners == value) {
+        return;
+    }
     roundedCorners = value;
     saveSettings();
-    apply();
+    apply(false);
 }

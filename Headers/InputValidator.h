@@ -25,6 +25,7 @@ public:
     static void validateQuantity(int quantity, int maxAvailable);
     static void validateOrderInput(const QString& model, const QString& serial, const QString& fault, double laborCost);
     static QString normalizePhone(const QString& rawPhone);
+    static QString normalizeSerial(const QString& rawSerial);
     static QString sanitizeString(const QString& text);
     static void setupPhoneMask(QLineEdit* lineEdit);
     static void setupSkuValidator(QLineEdit* lineEdit);

@@ -1,5 +1,6 @@
 #include "../headers/ClientDialog.h"
 #include "../headers/UiHelpers.h"
+#include "../../Headers/WorkshopSearchService.h"
 #include "../../Headers/InputValidator.h"
 #include "../../Exeptions/AppException.h"
 #include <QVBoxLayout>
@@ -12,6 +13,10 @@ ClientDialog::ClientDialog(Storage& storageRef, QWidget* parent)
     : QDialog(parent), storage(storageRef) {
     buildUi();
     refreshTable();
+}
+
+unsigned int ClientDialog::getLastAddedClientId() const {
+    return lastAddedClientId;
 }
 
 void ClientDialog::buildUi() {
@@ -59,7 +64,7 @@ void ClientDialog::buildUi() {
 }
 
 void ClientDialog::refreshTable() {
-    std::vector<Client> list = storage.searchClients(searchEdit->text());
+    std::vector<Client> list = WorkshopSearchService::searchClients(storage, searchEdit->text());
     clientsTable->setRowCount(static_cast<int>(list.size()));
     for (int row = 0; row < static_cast<int>(list.size()); ++row) {
         const Client& c = list[static_cast<std::size_t>(row)];
@@ -76,7 +81,8 @@ void ClientDialog::onSearchChanged(const QString&) {
 
 void ClientDialog::onAddClient() {
     try {
-        storage.addClient(nameEdit->text(), phoneEdit->text(), noteEdit->text());
+        const Client& created = storage.addClient(nameEdit->text(), phoneEdit->text(), noteEdit->text());
+        lastAddedClientId = created.getId();
         nameEdit->clear();
         phoneEdit->clear();
         noteEdit->clear();

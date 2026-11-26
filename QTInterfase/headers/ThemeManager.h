@@ -43,20 +43,22 @@ private:
     FontScale fontScale = FontScale::Standard;
     bool roundedCorners = true;
     QString settingsPath;
+    QString cachedCheckmarkUrl;
 
     void saveSettings() const;
-    QString ensureCheckmarkIcon() const;
+    void initCheckmarkIcon();
     ThemePaletteColors resolveColors() const;
     QColor resolveAccentColor(bool isNight) const;
     int resolveFontPoints() const;
     void applyPalette() const;
+    void applyFont() const;
     QString buildStyleSheet() const;
 
 public:
     explicit ThemeManager(const QString& configPath = "data/ui_theme.ini");
 
     void loadAndApply();
-    void apply() const;
+    void apply(bool updateFont = false) const;
 
     ThemeMode getMode() const;
     ColorPalette getPalette() const;

@@ -124,6 +124,9 @@ void Order::setDevice(std::unique_ptr<Device> value) {
 }
 
 void Order::setLaborCost(double value) {
+    if (isArchived()) {
+        throw InvalidInputDataException("Cannot modify an archived (issued) order");
+    }
     if (value < 0.0) {
         throw InvalidInputDataException("Labor cost cannot be negative");
     }
@@ -134,8 +137,8 @@ void Order::updateStatus(OrderStatus newStatus) {
     using enum OrderStatus;
     auto current = toUnderlying(status);
     auto next = toUnderlying(newStatus);
-    if (status == Issued && newStatus != Issued) {
-        throw InvalidInputDataException("Cannot reopen an already issued order");
+    if (isArchived()) {
+        throw InvalidInputDataException("Archived (issued) order cannot be modified or reopened");
     }
     if (newStatus == Issued && status != Completed) {
         throw InvalidInputDataException("Order must be completed before issuing to client");
@@ -144,7 +147,11 @@ void Order::updateStatus(OrderStatus newStatus) {
         throw InvalidInputDataException("Invalid order status transition");
     }
     status = newStatus;
-    appendDiagnosticNote("Статус изменён на: " + statusToText(newStatus));
+    if (newStatus == Issued) {
+        appendDiagnosticNote("Заказ выдан клиенту и перемещён в архив");
+    } else {
+        appendDiagnosticNote("Статус изменён на: " + statusToText(newStatus));
+    }
 }
 
 bool Order::isActive() const {
@@ -152,6 +159,10 @@ bool Order::isActive() const {
     return status == Accepted ||
            status == Diagnostics ||
            status == WaitingParts;
+}
+
+bool Order::isArchived() const {
+    return status == OrderStatus::Issued;
 }
 
 void Order::appendDiagnosticNote(const QString& note) {
@@ -168,6 +179,9 @@ void Order::appendDiagnosticNote(const QString& note) {
 }
 
 void Order::reservePart(SparePart& part, int count) {
+    if (isArchived()) {
+        throw InvalidInputDataException("Cannot reserve parts for an archived (issued) order");
+    }
     if (count <= 0) {
         throw InvalidInputDataException("Reserved part quantity must be positive");
     }
@@ -176,6 +190,9 @@ void Order::reservePart(SparePart& part, int count) {
 }
 
 void Order::returnPart(SparePart& part, int count) {
+    if (isArchived()) {
+        throw InvalidInputDataException("Cannot return parts from an archived (issued) order");
+    }
     if (count <= 0) {
         throw InvalidInputDataException("Returned part quantity must be positive");
     }

@@ -3,13 +3,18 @@
 
 #include "../../Headers/Storage.h"
 #include "ThemeManager.h"
+#include "WorkersTab.h"
+#include "ClientsTab.h"
+#include "WarehouseTab.h"
+#include "AccountingTab.h"
 #include <QMainWindow>
+#include <QTabWidget>
 #include <QTableWidget>
 #include <QComboBox>
 #include <QLineEdit>
 #include <QPushButton>
-#include <QCheckBox>
 #include <QLabel>
+#include <vector>
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -18,41 +23,48 @@ private:
     Storage storage;
     ThemeManager& themeManager;
 
-    QPushButton* themeToggleBtn;
-    QComboBox* paletteCombo;
-    QComboBox* fontScaleCombo;
-    QCheckBox* roundedCheck;
+    QTabWidget* mainTabs;
+    QTableWidget* currentOrdersTable;
+    QTableWidget* archivedOrdersTable;
+    WorkersTab* workersTab;
+    ClientsTab* clientsTab;
+    WarehouseTab* warehouseTab;
+    AccountingTab* accountingTab;
 
-    QTableWidget* ordersTable;
     QComboBox* statusFilterCombo;
     QLineEdit* searchEdit;
+    QLineEdit* archiveSearchEdit;
     QLabel* statsLabel;
+    QLabel* archiveStatsLabel;
+
+    QPushButton* editOrderBtn;
+    QPushButton* changeStatusBtn;
+    QPushButton* receiptPdfBtn;
+    QPushButton* warrantyPdfBtn;
 
     void buildUi();
-    void syncThemeControls();
+    QWidget* createTopActionBar();
+    QWidget* createCurrentOrdersTab();
+    QWidget* createArchiveOrdersTab();
+    void configureOrdersTable(QTableWidget* table) const;
+    void populateOrdersTable(QTableWidget* table, const std::vector<Order>& ordersList) const;
     void setupConnections() const;
-    void refreshOrdersTable();
+    void refreshOrdersTables();
     unsigned int getSelectedOrderId() const;
     void exportHtmlToPdf(const QString& dialogTitle, const QString& defaultFileName, const QString& htmlContent, const QString& successMessage);
     static QString formatStatusRu(OrderStatus status);
     static QString formatCategoryRu(const QString& category);
 
 private slots:
-    void onToggleThemeMode();
-    void onPaletteChanged(int index);
-    void onFontScaleChanged(int index);
-    void onRoundedChanged(bool checked);
+    void onTabChanged(int index);
     void onAddOrder();
     void onEditOrder();
     void onChangeOrderStatus();
     void onFilterChanged();
-    void onOpenMasters();
-    void onOpenClients();
-    void onOpenWarehouse();
     void onExportAcceptanceReceiptPdf();
     void onExportWarrantyPdf();
-    void onShowReport();
     void onBackupDatabase();
+    void onOpenSettings();
 
 public:
     explicit MainWindow(ThemeManager& themeRef, QWidget* parent = nullptr);

@@ -1,5 +1,6 @@
 #include "../headers/PartDialog.h"
 #include "../headers/UiHelpers.h"
+#include "../../Headers/WorkshopSearchService.h"
 #include "../../Headers/InputValidator.h"
 #include "../../Exeptions/AppException.h"
 #include <QVBoxLayout>
@@ -77,7 +78,7 @@ void PartDialog::buildUi() {
 }
 
 void PartDialog::refreshTable() {
-    std::vector<SparePart> list = storage.searchParts(searchEdit->text());
+    std::vector<SparePart> list = WorkshopSearchService::searchParts(storage, searchEdit->text());
     partsTable->setRowCount(static_cast<int>(list.size()));
     for (int row = 0; row < static_cast<int>(list.size()); ++row) {
         const SparePart& p = list[static_cast<std::size_t>(row)];

@@ -12,6 +12,7 @@ class ClientDialog : public QDialog {
 
 private:
     Storage& storage;
+    unsigned int lastAddedClientId = 0;
 
     QLineEdit* searchEdit;
     QTableWidget* clientsTable;
@@ -31,6 +32,8 @@ private slots:
 public:
     explicit ClientDialog(Storage& storageRef, QWidget* parent = nullptr);
     ~ClientDialog() override = default;
+
+    unsigned int getLastAddedClientId() const;
 };
 
 #endif

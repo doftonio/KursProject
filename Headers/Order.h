@@ -56,6 +56,7 @@ public:
     void setLaborCost(double value);
     void updateStatus(OrderStatus newStatus);
     bool isActive() const;
+    bool isArchived() const;
     void appendDiagnosticNote(const QString& note);
 
     void reservePart(SparePart& part, int count);

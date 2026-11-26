@@ -1,45 +1,26 @@
 #ifndef STORAGE_H
 #define STORAGE_H
 
+#include "StoragePersistence.h"
 #include "Repository.h"
 #include "Client.h"
 #include "Master.h"
 #include "SparePart.h"
 #include "Order.h"
 #include <QString>
-#include <vector>
 
 class Storage {
 private:
-    QString dataDirectory;
-    QString filepathApp;
-    QString filepathClients;
-    QString filepathMasters;
-    QString filepathParts;
-    QString filepathOrders;
-
-    unsigned int nextClientId = 1;
-    unsigned int nextMasterId = 5;
-    unsigned int nextOrderId = 1;
-    unsigned int nextPartId = 1;
+    StoragePersistence persistence;
+    IdCounters counters;
 
     Repository<Client> clients;
     Repository<Master> masters;
     Repository<SparePart> parts;
     Repository<Order> orders;
 
-    unsigned int allocateId(unsigned int& counter);
-    void initDefaultMasters();
-    void loadAppState();
-    void saveAppState() const;
-    void loadClients();
-    void saveClients() const;
-    void loadMasters();
-    void saveMasters() const;
-    void loadParts();
-    void saveParts() const;
-    void loadOrders();
-    void saveOrders() const;
+    unsigned int allocateId(unsigned int& counter) const;
+    static void ensureOrderEditable(const Order& order);
 
 public:
     static constexpr int maxActiveOrdersLimit = 30;
@@ -56,6 +37,7 @@ public:
     void restoreDatabase(const QString& backupFolder);
 
     int countActiveOrders() const;
+    int countArchivedOrders() const;
     void checkActiveOrdersLimit() const;
 
     const Repository<Client>& getClients() const;
@@ -67,14 +49,7 @@ public:
     const Master* findMasterById(unsigned int id) const;
     const Order* findOrderById(unsigned int id) const;
     SparePart* findPartBySku(const QString& sku);
-
-    std::vector<Client> searchClients(const QString& query) const;
-    std::vector<Master> searchMasters(const QString& query) const;
-    std::vector<SparePart> searchParts(const QString& query) const;
-    std::vector<SparePart> findAvailableParts() const;
-    std::vector<Master> findAvailableMasters(const QString& category) const;
     Master* selectLeastLoadedMaster(const QString& category);
-    std::vector<Order> filterOrders(int statusFilter, const QString& query) const;
 
     Client& addClient(const QString& name, const QString& phone, const QString& note = "");
     Master& addMaster(const QString& name, const QString& phone, const QString& specialization);
